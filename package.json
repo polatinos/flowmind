@@ -1,0 +1,11 @@
+{
+  "name": "nl.polatinos.homeyai",
+  "version": "0.1.0",
+  "description": "HomeyAI — een AI-assistent die op je Homey Pro draait met een chat in de app-instellingen.",
+  "main": "app.js",
+  "license": "MIT",
+  "author": "Tarik Polat <tarik-polat@live.nl>",
+  "dependencies": {
+    "homey-api": "^3.0.0"
+  }
+}

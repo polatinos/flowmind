@@ -1,0 +1,38 @@
+{
+  "id": "nl.polatinos.homeyai",
+  "version": "0.1.0",
+  "compatibility": ">=8.1.4",
+  "sdk": 3,
+  "platforms": ["local"],
+  "name": {
+    "en": "HomeyAI",
+    "nl": "HomeyAI"
+  },
+  "description": {
+    "en": "An AI assistant that runs on your Homey Pro. Chat in plain language and it reads your system, controls devices and builds (advanced) flows for you.",
+    "nl": "Een AI-assistent die op je Homey Pro draait. Chat in gewone taal en het leest je systeem uit, stuurt apparaten aan en bouwt (advanced) flows voor je."
+  },
+  "category": ["tools"],
+  "brandColor": "#5B5BF7",
+  "tags": {
+    "en": ["ai", "assistant", "chatgpt", "claude", "llm", "flow", "advanced flow"],
+    "nl": ["ai", "assistent", "chatgpt", "claude", "llm", "flow", "advanced flow"]
+  },
+  "permissions": [
+    "homey:manager:api"
+  ],
+  "api": {
+    "getConfig": { "method": "GET", "path": "/config" },
+    "saveConfig": { "method": "PUT", "path": "/config" },
+    "chat": { "method": "POST", "path": "/chat" }
+  },
+  "images": {
+    "small": "/assets/images/small.png",
+    "large": "/assets/images/large.png",
+    "xlarge": "/assets/images/xlarge.png"
+  },
+  "author": {
+    "name": "Tarik Polat",
+    "email": "tarik-polat@live.nl"
+  }
+}

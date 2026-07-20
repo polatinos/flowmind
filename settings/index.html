@@ -1,0 +1,273 @@
+<!DOCTYPE html>
+<html lang="nl">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>HomeyAI</title>
+  <style>
+    :root {
+      --bg: #f5f6fa;
+      --card: #ffffff;
+      --border: #e3e5ec;
+      --text: #1c1e26;
+      --muted: #6b7280;
+      --brand: #5b5bf7;
+      --brand-soft: #ecebff;
+      --user: #5b5bf7;
+      --assistant: #f0f1f6;
+      --danger: #d64545;
+      --ok: #2e9e5b;
+    }
+    * { box-sizing: border-box; }
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+      margin: 0; padding: 16px; color: var(--text); background: var(--bg);
+    }
+    h2 { margin: 0 0 4px; font-size: 18px; }
+    .sub { color: var(--muted); font-size: 13px; margin-bottom: 16px; }
+    .card {
+      background: var(--card); border: 1px solid var(--border);
+      border-radius: 12px; padding: 14px; margin-bottom: 14px;
+    }
+    .row { display: flex; gap: 10px; flex-wrap: wrap; align-items: flex-end; }
+    .field { display: flex; flex-direction: column; gap: 4px; flex: 1 1 180px; }
+    label { font-size: 12px; color: var(--muted); font-weight: 600; }
+    input, select {
+      width: 100%; padding: 9px 10px; border: 1px solid var(--border);
+      border-radius: 8px; font-size: 14px; background: #fff; color: var(--text);
+    }
+    button {
+      border: none; border-radius: 8px; padding: 9px 16px; font-size: 14px;
+      font-weight: 600; cursor: pointer; background: var(--brand); color: #fff;
+    }
+    button.secondary { background: var(--brand-soft); color: var(--brand); }
+    button:disabled { opacity: .55; cursor: default; }
+    .hint { font-size: 12px; color: var(--muted); margin-top: 6px; }
+    .status { font-size: 12px; margin-top: 8px; min-height: 16px; }
+    .status.ok { color: var(--ok); }
+    .status.err { color: var(--danger); }
+    details.settings summary {
+      cursor: pointer; font-weight: 600; font-size: 14px; padding: 4px 0;
+    }
+    /* Chat */
+    #chat {
+      height: 46vh; min-height: 260px; overflow-y: auto; padding: 6px;
+      display: flex; flex-direction: column; gap: 10px;
+    }
+    .msg { max-width: 88%; padding: 9px 12px; border-radius: 12px; font-size: 14px;
+      line-height: 1.4; white-space: pre-wrap; word-wrap: break-word; }
+    .msg.user { align-self: flex-end; background: var(--user); color: #fff;
+      border-bottom-right-radius: 3px; }
+    .msg.assistant { align-self: flex-start; background: var(--assistant);
+      border-bottom-left-radius: 3px; }
+    .msg.system { align-self: center; background: transparent; color: var(--muted);
+      font-size: 12px; text-align: center; }
+    .steps { align-self: flex-start; max-width: 88%; font-size: 11px; color: var(--muted); }
+    .steps details { background: #fafbff; border: 1px dashed var(--border);
+      border-radius: 8px; padding: 6px 8px; }
+    .steps code { font-family: ui-monospace, Menlo, monospace; }
+    .composer { display: flex; gap: 8px; margin-top: 10px; }
+    .composer textarea {
+      flex: 1; resize: none; height: 44px; padding: 10px; border: 1px solid var(--border);
+      border-radius: 10px; font-size: 14px; font-family: inherit;
+    }
+    .typing { font-style: italic; color: var(--muted); }
+  </style>
+</head>
+<body>
+  <h2>HomeyAI</h2>
+  <div class="sub">Chat in gewone taal met een AI die je Homey uitleest, apparaten aanstuurt en flows bouwt.</div>
+
+  <details class="settings card">
+    <summary>Instellingen (AI-provider &amp; API-keys)</summary>
+    <div style="margin-top: 12px;">
+      <div class="row">
+        <div class="field">
+          <label for="provider">AI-provider</label>
+          <select id="provider"></select>
+        </div>
+        <div class="field">
+          <label for="model">Model</label>
+          <input id="model" type="text" placeholder="standaardmodel" />
+        </div>
+      </div>
+      <div class="row" style="margin-top: 10px;">
+        <div class="field">
+          <label for="anthropicApiKey">Anthropic API-key</label>
+          <input id="anthropicApiKey" type="password" placeholder="sk-ant-…" autocomplete="off" />
+        </div>
+        <div class="field">
+          <label for="openaiApiKey">OpenAI API-key</label>
+          <input id="openaiApiKey" type="password" placeholder="sk-…" autocomplete="off" />
+        </div>
+      </div>
+      <div class="hint">Keys worden versleuteld opgeslagen op je Homey en nooit teruggestuurd naar deze pagina. Laat een veld leeg om de bestaande key te behouden.</div>
+      <div class="row" style="margin-top: 12px;">
+        <button id="saveBtn">Opslaan</button>
+        <button id="clearBtn" class="secondary" type="button">Wis gesprek</button>
+      </div>
+      <div id="settingsStatus" class="status"></div>
+    </div>
+  </details>
+
+  <div class="card">
+    <div id="chat"></div>
+    <div class="composer">
+      <textarea id="input" placeholder="Bijv. 'Zet de lampen in de woonkamer op 40%' of 'Maak een advanced flow die…'"></textarea>
+      <button id="sendBtn">Stuur</button>
+    </div>
+    <div id="chatStatus" class="status"></div>
+  </div>
+
+  <script type="text/javascript" src="/homey.js" data-origin="settings"></script>
+  <script type="text/javascript">
+    let messages = []; // { role: 'user'|'assistant', content: string }
+    let sending = false;
+
+    function onHomeyReady(Homey) {
+      Homey.ready();
+
+      const $ = (id) => document.getElementById(id);
+      const providerSel = $('provider');
+      const modelInput = $('model');
+
+      function api(method, path, body) {
+        return new Promise((resolve, reject) => {
+          Homey.api(method, path, body || null, (err, res) => (err ? reject(err) : resolve(res)));
+        });
+      }
+
+      function setStatus(el, text, kind) {
+        el.textContent = text || '';
+        el.className = 'status' + (kind ? ' ' + kind : '');
+      }
+
+      function esc(s) {
+        return String(s).replace(/[&<>]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;' }[c]));
+      }
+
+      function addMessage(role, content) {
+        const chat = $('chat');
+        const div = document.createElement('div');
+        div.className = 'msg ' + role;
+        div.textContent = content;
+        chat.appendChild(div);
+        chat.scrollTop = chat.scrollHeight;
+        return div;
+      }
+
+      function addSteps(steps) {
+        if (!steps || !steps.length) return;
+        const chat = $('chat');
+        const wrap = document.createElement('div');
+        wrap.className = 'steps';
+        const lines = steps
+          .map((s) => {
+            const err = s.result && s.result.error ? ' ⚠️ ' + esc(s.result.error) : '';
+            return '• <code>' + esc(s.tool) + '(' + esc(JSON.stringify(s.input)) + ')</code>' + err;
+          })
+          .join('<br>');
+        wrap.innerHTML =
+          '<details><summary>' + steps.length + ' actie(s) uitgevoerd</summary>' + lines + '</details>';
+        chat.appendChild(wrap);
+        chat.scrollTop = chat.scrollHeight;
+      }
+
+      async function loadConfig() {
+        try {
+          const cfg = await api('GET', '/config');
+          providerSel.innerHTML = '';
+          (cfg.providers || []).forEach((p) => {
+            const opt = document.createElement('option');
+            opt.value = p.id;
+            opt.textContent = p.label + (cfg.keysSet && cfg.keysSet[p.id] ? ' ✓' : '');
+            providerSel.appendChild(opt);
+          });
+          providerSel.value = cfg.provider || 'anthropic';
+          modelInput.value = cfg.model || '';
+          updateModelPlaceholder(cfg);
+          providerSel.onchange = () => updateModelPlaceholder(cfg);
+        } catch (e) {
+          setStatus($('settingsStatus'), 'Config laden mislukt: ' + (e.message || e), 'err');
+        }
+      }
+
+      function updateModelPlaceholder(cfg) {
+        const p = (cfg.providers || []).find((x) => x.id === providerSel.value);
+        if (p) modelInput.placeholder = p.defaultModel + ' (of kies een ander model)';
+      }
+
+      $('saveBtn').onclick = async () => {
+        setStatus($('settingsStatus'), 'Opslaan…');
+        try {
+          await api('PUT', '/config', {
+            provider: providerSel.value,
+            model: modelInput.value.trim(),
+            anthropicApiKey: $('anthropicApiKey').value,
+            openaiApiKey: $('openaiApiKey').value,
+          });
+          $('anthropicApiKey').value = '';
+          $('openaiApiKey').value = '';
+          setStatus($('settingsStatus'), 'Opgeslagen ✓', 'ok');
+          await loadConfig();
+        } catch (e) {
+          setStatus($('settingsStatus'), 'Opslaan mislukt: ' + (e.message || e), 'err');
+        }
+      };
+
+      $('clearBtn').onclick = () => {
+        messages = [];
+        $('chat').innerHTML = '';
+        addMessage('system', 'Nieuw gesprek gestart.');
+      };
+
+      async function send() {
+        if (sending) return;
+        const text = $('input').value.trim();
+        if (!text) return;
+        sending = true;
+        $('sendBtn').disabled = true;
+        $('input').value = '';
+        addMessage('user', text);
+        messages.push({ role: 'user', content: text });
+
+        const typing = addMessage('assistant', '…');
+        typing.classList.add('typing');
+        setStatus($('chatStatus'), 'HomeyAI denkt na en voert acties uit…');
+
+        try {
+          const res = await api('POST', '/chat', {
+            messages: messages,
+            provider: providerSel.value,
+            model: modelInput.value.trim() || undefined,
+          });
+          typing.remove();
+          const reply = (res && res.reply) || '(geen antwoord)';
+          addMessage('assistant', reply);
+          addSteps(res && res.steps);
+          messages.push({ role: 'assistant', content: reply });
+          setStatus($('chatStatus'), '', '');
+        } catch (e) {
+          typing.remove();
+          setStatus($('chatStatus'), 'Fout: ' + (e.message || e), 'err');
+          addMessage('system', 'Er ging iets mis: ' + (e.message || e));
+        } finally {
+          sending = false;
+          $('sendBtn').disabled = false;
+        }
+      }
+
+      $('sendBtn').onclick = send;
+      $('input').addEventListener('keydown', (ev) => {
+        if (ev.key === 'Enter' && !ev.shiftKey) {
+          ev.preventDefault();
+          send();
+        }
+      });
+
+      loadConfig();
+      addMessage('system', 'Welkom! Stel een vraag of geef een opdracht. Vul eerst je API-key in via Instellingen.');
+    }
+  </script>
+</body>
+</html>

@@ -1,0 +1,106 @@
+'use strict';
+
+const Homey = require('homey');
+const HomeyContext = require('./lib/HomeyContext');
+const { runAssistant, listProviders } = require('./lib/llm');
+
+const SETTINGS = {
+  PROVIDER: 'provider',
+  MODEL: 'model',
+  ANTHROPIC_KEY: 'anthropicApiKey',
+  OPENAI_KEY: 'openaiApiKey',
+};
+
+module.exports = class HomeyAIApp extends Homey.App {
+  async onInit() {
+    this.log('HomeyAI is starting…');
+    this.homeyContext = new HomeyContext(this.homey);
+    try {
+      await this.homeyContext.init();
+      this.log('Connected to the Homey Web API.');
+    } catch (err) {
+      // Don't crash the app: surface the problem when the user chats instead.
+      this.error('Could not initialise the Homey Web API yet:', err.message);
+    }
+  }
+
+  _keyFor(provider) {
+    if (provider === 'anthropic') return this.homey.settings.get(SETTINGS.ANTHROPIC_KEY);
+    if (provider === 'openai') return this.homey.settings.get(SETTINGS.OPENAI_KEY);
+    return null;
+  }
+
+  /**
+   * Return non-secret configuration for the settings page. API keys are never
+   * sent back to the client — only whether each one is present.
+   */
+  async getConfig() {
+    const provider = this.homey.settings.get(SETTINGS.PROVIDER) || 'anthropic';
+    const model = this.homey.settings.get(SETTINGS.MODEL) || '';
+    return {
+      provider,
+      model,
+      providers: listProviders(),
+      keysSet: {
+        anthropic: Boolean(this.homey.settings.get(SETTINGS.ANTHROPIC_KEY)),
+        openai: Boolean(this.homey.settings.get(SETTINGS.OPENAI_KEY)),
+      },
+    };
+  }
+
+  /**
+   * Persist configuration. Empty/whitespace API-key values are ignored so the
+   * user can update the model/provider without re-entering a key.
+   */
+  async saveConfig(body = {}) {
+    if (typeof body.provider === 'string') {
+      this.homey.settings.set(SETTINGS.PROVIDER, body.provider);
+    }
+    if (typeof body.model === 'string') {
+      this.homey.settings.set(SETTINGS.MODEL, body.model);
+    }
+    if (typeof body.anthropicApiKey === 'string' && body.anthropicApiKey.trim()) {
+      this.homey.settings.set(SETTINGS.ANTHROPIC_KEY, body.anthropicApiKey.trim());
+    }
+    if (typeof body.openaiApiKey === 'string' && body.openaiApiKey.trim()) {
+      this.homey.settings.set(SETTINGS.OPENAI_KEY, body.openaiApiKey.trim());
+    }
+    return this.getConfig();
+  }
+
+  /**
+   * Run one assistant turn.
+   * @param {object} body
+   * @param {Array<{role,content}>} body.messages full chat history
+   */
+  async chat(body = {}) {
+    const messages = Array.isArray(body.messages) ? body.messages : [];
+    if (!messages.length) throw new Error('No messages provided.');
+
+    const provider = body.provider || this.homey.settings.get(SETTINGS.PROVIDER) || 'anthropic';
+    const model = body.model || this.homey.settings.get(SETTINGS.MODEL) || '';
+    const apiKey = this._keyFor(provider);
+    if (!apiKey) {
+      throw new Error(
+        `No API key set for ${provider}. Open the settings and add your ${provider} API key first.`,
+      );
+    }
+
+    // Make sure the Web API client is ready (retry init if the first attempt failed).
+    await this.homeyContext.init();
+
+    const result = await runAssistant({
+      provider,
+      apiKey,
+      model,
+      messages: messages.map((m) => ({
+        role: m.role === 'assistant' ? 'assistant' : 'user',
+        content: String(m.content == null ? '' : m.content),
+      })),
+      homeyContext: this.homeyContext,
+      log: (msg) => this.log(msg),
+    });
+
+    return result;
+  }
+};
