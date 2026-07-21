@@ -391,6 +391,48 @@
         addMessage('system', t('newChat'));
       };
 
+      // An assistant turn takes far longer than the ~10s Homey allows an app
+      // API request to stay open, so /chat only starts the job and we collect
+      // the answer here. The app also emits a realtime 'chat' event when a job
+      // finishes; that just triggers an early poll, so a missed event (page
+      // closed, phone asleep) costs a moment, not the answer.
+      let pokeJob = null;
+      Homey.on('chat', () => { if (pokeJob) pokeJob(); });
+
+      const JOB_POLL_MS = 1500;
+      const JOB_MAX_WAIT_MS = 5 * 60 * 1000;
+
+      function waitForJob(jobId) {
+        return new Promise((resolve, reject) => {
+          const deadline = Date.now() + JOB_MAX_WAIT_MS;
+          let timer = null;
+          let busy = false;
+
+          const stop = () => { clearTimeout(timer); pokeJob = null; };
+
+          const check = async () => {
+            if (busy) return;
+            busy = true;
+            try {
+              const job = await api('GET', '/chat/' + encodeURIComponent(jobId));
+              if (job && job.status === 'done') { stop(); resolve(job.result || {}); return; }
+              if (job && job.status === 'error') { stop(); reject(new Error(job.error)); return; }
+              if (job && job.status === 'unknown') { stop(); reject(new Error(t('jobLost'))); return; }
+            } catch (e) {
+              // A dropped poll is normal on mobile; keep trying until the
+              // deadline rather than throwing away a job that is still running.
+            } finally {
+              busy = false;
+            }
+            if (Date.now() > deadline) { stop(); reject(new Error(t('jobTimeout'))); return; }
+            timer = setTimeout(check, JOB_POLL_MS);
+          };
+
+          pokeJob = () => { clearTimeout(timer); timer = setTimeout(check, 50); };
+          timer = setTimeout(check, 800);
+        });
+      }
+
       async function send() {
         if (sending) return;
         const text = $('input').value.trim();
@@ -404,7 +446,14 @@
 
         const typing = addMessage('assistant', '…');
         typing.classList.add('typing');
+        // Show elapsed seconds while waiting: long turns are normal, and the
+        // number tells us where a failure fell (client abort vs backend error).
+        const startedAt = Date.now();
+        const elapsed = () => Math.round((Date.now() - startedAt) / 1000);
         setStatus($('chatStatus'), t('thinking'));
+        const ticker = setInterval(() => {
+          setStatus($('chatStatus'), t('thinking') + ' (' + elapsed() + 's)');
+        }, 1000);
 
         try {
           // Use the in-chat AI picker. Only reuse the saved custom model when the
@@ -415,11 +464,13 @@
             currentCfg && chatProvider === currentCfg.provider && currentCfg.model
               ? currentCfg.model
               : undefined;
-          const res = await api('POST', '/chat', {
+          const started = await api('POST', '/chat', {
             messages: messages,
             provider: chatProvider,
             model: model,
           });
+          if (!started || !started.jobId) throw new Error(t('jobLost'));
+          const res = await waitForJob(started.jobId);
           typing.remove();
           const reply = (res && res.reply) || t('noReply');
           addMessage('assistant', reply);
@@ -430,14 +481,16 @@
           if ($('memDetails').open) loadMemories();
         } catch (e) {
           typing.remove();
-          setStatus($('chatStatus'), t('errorPrefix') + (e.message || e), 'err');
-          addMessage('system', t('wentWrong') + (e.message || e));
+          const suffix = ' [' + elapsed() + 's]';
+          setStatus($('chatStatus'), t('errorPrefix') + (e.message || e) + suffix, 'err');
+          addMessage('system', t('wentWrong') + (e.message || e) + suffix);
           // Drop the failed turn from the history and restore the text so
           // retrying keeps a clean conversation.
           messages.pop();
           persistChat();
           if (!$('input').value) $('input').value = text;
         } finally {
+          clearInterval(ticker);
           sending = false;
           $('sendBtn').disabled = false;
         }

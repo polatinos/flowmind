@@ -14,8 +14,15 @@ module.exports = {
     return homey.app.saveConfig(body || {});
   },
 
+  // Starts a chat turn and returns a job id straight away. Homey cancels app
+  // API requests from a settings page after ~10s, which is far less than an
+  // assistant turn needs, so the answer is collected via getChatJob instead.
   async chat({ homey, body }) {
-    return homey.app.chat(body || {});
+    return homey.app.startChat(body || {});
+  },
+
+  async getChatJob({ homey, params }) {
+    return homey.app.getChatJob({ jobId: params && params.jobId });
   },
 
   async getMemories({ homey }) {

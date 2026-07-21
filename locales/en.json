@@ -45,6 +45,8 @@
     "newChat": "New conversation started.",
     "restored": "Previous conversation restored.",
     "welcome": "Welcome! Just type your request — by default you chat for free via OpenCode Zen (Big Pickle), no key needed. Configure other AI providers under Settings.",
-    "noReply": "(no reply)"
+    "noReply": "(no reply)",
+    "jobLost": "The answer is no longer available — the app probably restarted. Please ask again.",
+    "jobTimeout": "The assistant took longer than 5 minutes. Please try again, or pick a faster model."
   }
 }

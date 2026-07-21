@@ -45,6 +45,8 @@
     "newChat": "Nieuw gesprek gestart.",
     "restored": "Vorig gesprek hersteld.",
     "welcome": "Welkom! Typ gewoon je opdracht — standaard chat je gratis via OpenCode Zen (Big Pickle), zonder key. Andere AI-providers stel je in via Instellingen.",
-    "noReply": "(geen antwoord)"
+    "noReply": "(geen antwoord)",
+    "jobLost": "Het antwoord is niet meer beschikbaar — de app is waarschijnlijk herstart. Stel je vraag opnieuw.",
+    "jobTimeout": "De assistent deed er langer dan 5 minuten over. Probeer het opnieuw, of kies een sneller model."
   }
 }

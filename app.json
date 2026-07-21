@@ -1,6 +1,6 @@
 {
   "id": "nl.polatinos.flowmind",
-  "version": "0.2.0",
+  "version": "0.2.1",
   "compatibility": ">=8.1.4",
   "sdk": 3,
   "platforms": ["local"],
@@ -25,6 +25,7 @@
     "getConfig": { "method": "GET", "path": "/config" },
     "saveConfig": { "method": "PUT", "path": "/config" },
     "chat": { "method": "POST", "path": "/chat" },
+    "getChatJob": { "method": "GET", "path": "/chat/:jobId" },
     "getMemories": { "method": "GET", "path": "/memories" },
     "deleteMemory": { "method": "DELETE", "path": "/memories/:id" }
   },

@@ -20,9 +20,17 @@ const SETTINGS = {
 // is usable out of the box, like the Home Assistant "opencode" add-on.
 const DEFAULT_PROVIDER = 'zen';
 
+// Chat jobs. A settings page cannot wait for an assistant turn: Homey cancels
+// its app API requests after ~10s, while a turn with tool calls easily takes
+// 15-60s. So /chat only starts the work and the page polls /chat/:jobId for
+// the result. Kept in memory only, and bounded like all storage on a Homey Pro.
+const CHAT_JOB_MAX = 20;
+const CHAT_JOB_TTL_MS = 10 * 60 * 1000;
+
 module.exports = class FlowMindApp extends Homey.App {
   async onInit() {
     this.log('FlowMind is starting…');
+    this._chatJobs = new Map();
     this.homeyContext = new HomeyContext(this.homey);
     try {
       await this.homeyContext.init();
@@ -136,6 +144,64 @@ module.exports = class FlowMindApp extends Homey.App {
     return this.getConfig();
   }
 
+  /** Drop expired jobs, then make room so the map never grows past the cap. */
+  _pruneChatJobs() {
+    const now = Date.now();
+    for (const [id, job] of this._chatJobs) {
+      if (now - job.createdAt > CHAT_JOB_TTL_MS) this._chatJobs.delete(id);
+    }
+    // Map iterates in insertion order, so this drops the oldest jobs first.
+    while (this._chatJobs.size >= CHAT_JOB_MAX) {
+      this._chatJobs.delete(this._chatJobs.keys().next().value);
+    }
+  }
+
+  /**
+   * Start an assistant turn in the background and return its job id at once.
+   * Used by the settings page, which cannot hold a request open long enough.
+   */
+  async startChat(body = {}) {
+    this._pruneChatJobs();
+
+    const jobId = `${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 10)}`;
+    const job = { id: jobId, status: 'pending', createdAt: Date.now(), result: null, error: null };
+    this._chatJobs.set(jobId, job);
+
+    this.chat(body)
+      .then((result) => {
+        job.status = 'done';
+        job.result = result;
+      })
+      .catch((err) => {
+        job.status = 'error';
+        job.error = err && err.message ? err.message : String(err);
+      })
+      .then(() => {
+        // Nudge an open settings page so it fetches the result immediately
+        // instead of waiting for its next poll. Polling is the fallback for
+        // when the page was closed, so a failure here is harmless.
+        try {
+          this.homey.api.realtime('chat', { jobId, status: job.status });
+        } catch (err) {
+          this.log(`[chat] could not emit realtime event: ${err.message}`);
+        }
+      });
+
+    return { jobId };
+  }
+
+  /**
+   * Poll a chat job. Finished jobs stay until pruned, so a page that missed
+   * the realtime event (closed, asleep, reloaded) can still collect its answer.
+   */
+  async getChatJob({ jobId } = {}) {
+    const job = this._chatJobs.get(String(jobId == null ? '' : jobId));
+    if (!job) return { status: 'unknown' };
+    if (job.status === 'error') return { status: 'error', error: job.error };
+    if (job.status === 'done') return { status: 'done', result: job.result };
+    return { status: 'pending' };
+  }
+
   /**
    * Run one assistant turn.
    * @param {object} body
@@ -164,6 +230,9 @@ module.exports = class FlowMindApp extends Homey.App {
     // Make sure the Web API client is ready (retry init if the first attempt failed).
     await this.homeyContext.init();
 
+    const startedAt = Date.now();
+    this.log(`[chat] start provider=${provider} model=${model || '(default)'} messages=${messages.length}`);
+
     const result = await runAssistant({
       provider,
       apiKey,
@@ -175,8 +244,17 @@ module.exports = class FlowMindApp extends Homey.App {
         content: String(m.content == null ? '' : m.content),
       })),
       homeyContext: this.homeyContext,
-      log: (msg) => this.log(msg),
+      log: (msg) => this.log(`${msg} (+${Date.now() - startedAt}ms)`),
+    }).catch((err) => {
+      this.error(`[chat] failed after ${Date.now() - startedAt}ms:`, err.message);
+      throw err;
     });
+
+    this.log(
+      `[chat] done in ${Date.now() - startedAt}ms — ${result.steps ? result.steps.length : 0} steps, reply ${
+        result.reply ? result.reply.length : 0
+      } chars`,
+    );
 
     return result;
   }
