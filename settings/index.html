@@ -89,12 +89,19 @@
       padding-bottom: 10px; border-bottom: 1px solid var(--border); flex-wrap: wrap; }
     .chatbar label { font-size: 12px; }
     .chatbar select { width: auto; padding: 6px 8px; font-size: 13px; }
-    .composer { display: flex; gap: 8px; margin-top: 10px; }
+    .composer { display: flex; gap: 8px; margin-top: 10px; align-items: flex-end; }
+    /* The input grows with its content (a script syncs height to scrollHeight),
+       terminal-style, up to ~8 lines; beyond that it scrolls internally. */
     .composer textarea {
-      flex: 1; resize: none; height: 44px; padding: 10px; border: 1px solid var(--border);
-      border-radius: 10px; font-size: 14px; font-family: inherit;
+      flex: 1; resize: none; height: 44px; min-height: 44px; max-height: 180px;
+      padding: 10px; border: 1px solid var(--border);
+      border-radius: 10px; font-size: 14px; font-family: inherit; overflow-y: auto;
     }
     .typing { font-style: italic; color: var(--muted); }
+    /* More room for the conversation on desktop screens. */
+    @media (min-width: 900px) {
+      #chat { height: 62vh; min-height: 420px; }
+    }
   </style>
 </head>
 <body>
@@ -154,6 +161,18 @@
         <span data-i18n="settings.allowScripts">Allow script execution (the AI may run JavaScript on your Homey)</span>
       </label>
       <div class="hint" data-i18n="settings.allowScriptsHint">Only enable this if you understand what it does: the AI can then execute code with access to your Homey. Off by default.</div>
+      <div style="margin-top: 12px; padding: 12px; border: 1px solid var(--border); border-radius: 10px;">
+        <div style="font-weight: 700; font-size: 13px; margin-bottom: 2px;" data-i18n="settings.homeyKeyTitle">🔑 Homey API key (needed to create flows)</div>
+        <div class="hint" style="margin: 0 0 8px;" data-i18n="settings.homeyKeyHint">Without this key the AI can read your system and control devices, but not create or edit flows — Homey does not give apps that permission. Create a key via my.homey.app → Settings → System → API keys and paste it here. It never leaves your Homey.</div>
+        <div class="field">
+          <label for="homeyApiKey" data-i18n="settings.homeyKeyLabel">Homey API key</label>
+          <input id="homeyApiKey" type="password" autocomplete="off" />
+        </div>
+        <div class="row" style="margin-top: 6px; align-items: center;">
+          <span id="homeyKeyStatus" class="hint" style="margin: 0;"></span>
+          <button id="homeyKeyRemoveBtn" class="danger" type="button" style="display:none;" data-i18n="settings.homeyKeyRemove">Remove key</button>
+        </div>
+      </div>
       <div class="row" style="margin-top: 12px;">
         <button id="saveBtn" data-i18n="settings.save">Save</button>
         <button id="clearBtn" class="secondary" type="button" data-i18n="settings.clearChat">Clear conversation</button>
@@ -352,6 +371,7 @@
           modelInput.value = cfg.model || '';
           $('compatibleBaseUrl').value = cfg.compatibleBaseUrl || '';
           $('enableCodeExecution').checked = Boolean(cfg.enableCodeExecution);
+          updateHomeyKeyStatus(cfg.homeyApi || {});
           updateModelPlaceholder(cfg);
           providerSel.onchange = () => updateModelPlaceholder(cfg);
           currentCfg = cfg;
@@ -360,6 +380,33 @@
           setStatus($('settingsStatus'), t('configFailed') + (e.message || e), 'err');
         }
       }
+
+      // The key unlocks flow creation; show plainly whether it works so the
+      // user is not left guessing why the AI cannot build flows.
+      function updateHomeyKeyStatus(status) {
+        const el = $('homeyKeyStatus');
+        $('homeyKeyRemoveBtn').style.display = status.keySet ? '' : 'none';
+        if (!status.keySet) {
+          el.textContent = t('homeyKeyStatusNone');
+        } else if (status.mode === 'local') {
+          el.textContent = t('homeyKeyStatusOk');
+        } else if (status.error) {
+          el.textContent = t('homeyKeyStatusError') + status.error;
+        } else {
+          el.textContent = t('homeyKeyStatusPending');
+        }
+      }
+
+      $('homeyKeyRemoveBtn').onclick = async () => {
+        setStatus($('settingsStatus'), t('saving'));
+        try {
+          await api('PUT', '/config', { clearHomeyApiKey: true });
+          setStatus($('settingsStatus'), t('saved'), 'ok');
+          await loadConfig();
+        } catch (e) {
+          setStatus($('settingsStatus'), t('saveFailed') + (e.message || e), 'err');
+        }
+      };
 
       function updateModelPlaceholder(cfg) {
         const p = (cfg.providers || []).find((x) => x.id === providerSel.value);
@@ -464,12 +511,14 @@
             compatibleApiKey: $('compatibleApiKey').value,
             compatibleBaseUrl: $('compatibleBaseUrl').value.trim(),
             enableCodeExecution: $('enableCodeExecution').checked,
+            homeyApiKey: $('homeyApiKey').value,
           });
           $('zenApiKey').value = '';
           $('anthropicApiKey').value = '';
           $('openaiApiKey').value = '';
           $('geminiApiKey').value = '';
           $('compatibleApiKey').value = '';
+          $('homeyApiKey').value = '';
           setStatus($('settingsStatus'), t('saved'), 'ok');
           await loadConfig();
         } catch (e) {
@@ -533,6 +582,7 @@
         sending = true;
         $('sendBtn').disabled = true;
         $('input').value = '';
+        $('input').style.height = '44px';
         addMessage('user', text);
         messages.push({ role: 'user', content: text });
         persistChat();
@@ -581,7 +631,10 @@
           // retrying keeps a clean conversation.
           messages.pop();
           persistChat();
-          if (!$('input').value) $('input').value = text;
+          if (!$('input').value) {
+            $('input').value = text;
+            $('input').dispatchEvent(new Event('input'));
+          }
         } finally {
           clearInterval(ticker);
           sending = false;
@@ -596,6 +649,14 @@
           send();
         }
       });
+
+      // Grow the input with its content (CSS max-height caps it at ~8 lines).
+      const autosize = () => {
+        const el = $('input');
+        el.style.height = 'auto';
+        el.style.height = Math.max(44, el.scrollHeight + 2) + 'px';
+      };
+      $('input').addEventListener('input', autosize);
 
       loadConfig();
       if (messages.length) {

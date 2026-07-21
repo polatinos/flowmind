@@ -14,6 +14,7 @@ const SETTINGS = {
   COMPATIBLE_KEY: 'compatibleApiKey',
   COMPATIBLE_BASE_URL: 'compatibleBaseUrl',
   ENABLE_CODE: 'enableCodeExecution',
+  HOMEY_KEY: 'homeyApiKey',
 };
 
 // The free, one-key OpenCode Zen (Big Pickle) option is the default so the app
@@ -109,6 +110,8 @@ module.exports = class FlowMindApp extends Homey.App {
         gemini: Boolean(this.homey.settings.get(SETTINGS.GEMINI_KEY)),
         compatible: Boolean(this.homey.settings.get(SETTINGS.COMPATIBLE_KEY)),
       },
+      // Local Homey API key status: flows can only be created in 'local' mode.
+      homeyApi: this.homeyContext.getApiStatus(),
     };
   }
 
@@ -141,6 +144,26 @@ module.exports = class FlowMindApp extends Homey.App {
         this.homey.settings.set(key, body[field].trim());
       }
     }
+
+    // The Homey API key unlocks flow creation (the app token lacks that
+    // scope). Reconnect right away so the save response reports whether the
+    // key actually works.
+    const homeyKeyChanged =
+      (typeof body.homeyApiKey === 'string' && body.homeyApiKey.trim()) ||
+      body.clearHomeyApiKey === true;
+    if (body.clearHomeyApiKey === true) {
+      this.homey.settings.unset(SETTINGS.HOMEY_KEY);
+    } else if (typeof body.homeyApiKey === 'string' && body.homeyApiKey.trim()) {
+      this.homey.settings.set(SETTINGS.HOMEY_KEY, body.homeyApiKey.trim());
+    }
+    if (homeyKeyChanged) {
+      try {
+        await this.homeyContext.reset();
+      } catch (err) {
+        this.error('Reconnecting the Homey API after a key change failed:', err.message);
+      }
+    }
+
     return this.getConfig();
   }
 

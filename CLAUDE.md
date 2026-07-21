@@ -84,19 +84,30 @@ lib/
   `_runFromFlow()` met `maxSteps: 6` en een `[flow]`-prefix zodat de
   systemprompt bevestigingsvragen overslaat.
 
-### Flows aanmaken kan NIET met het app-token (blocker, v0.2.3)
+### Flows aanmaken kan NIET met het app-token (opgelost in v0.3.0)
 - `createFlow` faalt met **"Missing Scopes"**. Lezen van flows en apparaten
   aansturen werkt wél. Dit is een bewuste beperking van Athom, geen bug:
   de scopes die een app (en elke OAuth-client) krijgt kennen alleen
   `homey.flow.readonly` en `homey.flow.start`.
-- **Oplossing (getest, werkt):** een API-sleutel die de gebruiker op de Homey
-  Pro zelf aanmaakt (Instellingen → Systeem → API-sleutels) kent wél de
-  ouder-scope `homey.flow`. Daarmee slaagde `createFlow` in een losse test.
-  Implementatie: `HomeyAPI.createLocalAPI({ address, token })` in plaats van
-  `createAppAPI`. **Nog te bouwen.**
+- **Oplossing (gebouwd in v0.3.0):** een optionele "Homey API-sleutel"-setting
+  (`homeyApiKey`). De gebruiker maakt de sleutel op de Homey Pro zelf
+  (my.homey.app → Instellingen → Systeem → API-sleutels); die kent wél de
+  ouder-scope `homey.flow`. Als de sleutel gezet is gebruikt `HomeyContext`
+  `HomeyAPI.createLocalAPI({ address, token })` voor álles (adres komt van
+  `homey.cloud.getLocalAddress()`); mislukt dat, dan valt hij terug op
+  `createAppAPI` zodat chat en apparaatbediening blijven werken
+  (`apiMode`: 'local' | 'app'). Bij Missing Scopes in app-modus verrijkt
+  `executeTool` de fout met de sleutel-instructie; de systemprompt verbiedt
+  expliciet het "Run scripts"-advies als workaround (run_script gebruikt
+  hetzelfde token en zou identiek falen).
+- Route op 2026-07-21 twee keer onafhankelijk live geverifieerd (connect →
+  createFlow → delete slaagde met de sleutel).
 - Niet opnieuw proberen op te lossen met permissies in `app.json`: de complete
   lijst kent maar dertien permissies en `homey:manager:api` is de enige
   relevante.
+- Minimale scopes nog onbekend — getest met een full-access sleutel.
+  Verwachting (nog verifiëren met een smallere sleutel): `homey.flow` +
+  `homey.device` + `homey.zone` + `homey.insights` + `homey.mood`.
 
 ### De instellingenpagina kapt requests af na 10 seconden
 - Een `Homey.api()`-call vanuit de settings-pagina wordt door de Homey-app na
@@ -158,13 +169,17 @@ Gevonden en opgelost tijdens die sessie: de 10s-timeout, het waarde-type bij
 `control_device`, twee hardcoded Nederlandse labels, en Markdown die niet
 gerenderd werd. Zie de kritieke lessen hierboven.
 
-**Volgende stap:** de API-sleutel inbouwen zodat test 4 en 5 kunnen slagen.
+**Volgende stap (na v0.3.0):** op de Homey de sleutel in de settings-pagina
+plakken en test 4 en 5 draaien; daarna de minimale scopes bepalen met een
+smallere sleutel.
 
-Ook nog open:
-- Het invoerveld op desktop is een vast blokje van 44px; moet meegroeien met
-  de tekst, met een hoger chatvenster op brede schermen.
-- Bij een mislukte flow adviseert de assistent om "Scripts uitvoeren" aan te
-  zetten. Dat advies moet weg — een veiligheidsschakelaar is geen workaround.
+In v0.3.0 opgelost:
+- API-sleutel-setting + lokale API-client met fallback (zie hierboven).
+- Het invoerveld groeit nu mee met de tekst (max ~8 regels) en het
+  chatvenster is hoger op brede schermen (media query ≥900px).
+- Het "Scripts uitvoeren"-advies bij een mislukte flow is vervangen door de
+  juiste instructie (API-sleutel instellen), zowel in de systemprompt als in
+  de foutmelding van `executeTool`.
 
 Bevindingen/fixes: versie bumpen (app.json + package.json), valideren,
 committen; pushen alleen na toestemming.
