@@ -240,8 +240,11 @@ Nachttest 2026-07-22 (v0.5.3/0.5.4, via de webterminal):
   stil niets — waarna het model "Gedaan" meldde. Fix v0.5.4:
   `_assertDeviceCardsExist` weigert onbekende device-ids bij elke flow
   create/update; prompt: ids alleen uit tool-results van dít gesprek +
-  "verifieer vóór je succes claimt". Retry daarna werkte bewijsbaar
-  (Insights: neon uit 23:13:27Z, aan 23:13:49Z — 21s).
+  "verifieer vóór je succes claimt". Retry daarna: flow correct, Homey-status
+  klapte om (uit 23:13:27Z, aan 23:13:49Z) — maar de fysieke lamp (Govee,
+  com.govee.developer) deed NIETS; Tarik zat ernaast. Les: capability-status
+  en Insights bewijzen géén fysieke verandering bij optimistische
+  cloud-drivers — de waarneming van de gebruiker wint altijd.
 - v0.5.3: vertraagde acties → tijdelijke flow met delay (nooit run_script
   als eerste greep), zonder overbodige bevestigingsvraag, en opruimen na
   afloop.
