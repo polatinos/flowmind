@@ -20,9 +20,16 @@ flows, onthoudt feiten en leest Insights-historie. Twee flow-actionkaarten
 ```bash
 npm ci                                  # dependencies (lockfile!)
 npx homey app validate --level publish  # ALTIJD draaien vóór commit
-npx homey app run                       # tijdelijk op de Homey (logs in terminal)
+npx homey app run --remote              # tijdelijk op de Homey (logs in terminal)
 npx homey app install                   # permanent installeren
 ```
+
+`app run` **zonder** `--remote` draait de app in een Docker-container op deze
+machine; zonder draaiende Docker faalt dat. Met `--remote` draait hij op de
+Homey zelf — dat is ook eerlijker om te testen. Remote-mode doet **geen
+hot-reload**: na elke codewijziging het proces stoppen en opnieuw starten.
+Eerste keer: `npx homey select --name "Homey Pro van Tarik"` (de CLI vraagt
+anders interactief, wat in een agent-sessie vastloopt).
 
 Er zijn geen unit tests; verifieer met `node --check <file>`, de validate
 hierboven, en waar mogelijk een echte API-call (Zen werkt zonder key).
@@ -77,6 +84,35 @@ lib/
   `_runFromFlow()` met `maxSteps: 6` en een `[flow]`-prefix zodat de
   systemprompt bevestigingsvragen overslaat.
 
+### Flows aanmaken kan NIET met het app-token (blocker, v0.2.3)
+- `createFlow` faalt met **"Missing Scopes"**. Lezen van flows en apparaten
+  aansturen werkt wél. Dit is een bewuste beperking van Athom, geen bug:
+  de scopes die een app (en elke OAuth-client) krijgt kennen alleen
+  `homey.flow.readonly` en `homey.flow.start`.
+- **Oplossing (getest, werkt):** een API-sleutel die de gebruiker op de Homey
+  Pro zelf aanmaakt (Instellingen → Systeem → API-sleutels) kent wél de
+  ouder-scope `homey.flow`. Daarmee slaagde `createFlow` in een losse test.
+  Implementatie: `HomeyAPI.createLocalAPI({ address, token })` in plaats van
+  `createAppAPI`. **Nog te bouwen.**
+- Niet opnieuw proberen op te lossen met permissies in `app.json`: de complete
+  lijst kent maar dertien permissies en `homey:manager:api` is de enige
+  relevante.
+
+### De instellingenpagina kapt requests af na 10 seconden
+- Een `Homey.api()`-call vanuit de settings-pagina wordt door de Homey-app na
+  ~10s geannuleerd ("Fetch request has been canceled"), terwijl de app gewoon
+  doorwerkt. Een AI-beurt duurt 15-60s, dus dat haalt het nooit.
+- Daarom is `/chat` een **wachtrij**: hij geeft direct een `jobId` terug en de
+  pagina haalt het antwoord op via `GET /chat/:jobId`. Niet terugbouwen naar
+  één synchrone request.
+
+### Modellen sturen verkeerde typen mee
+- `control_device.value` kan geen vast type hebben (boolean voor onoff, getal
+  voor dim, string voor enums), dus modellen sturen `"false"` als tekst en
+  Homey weigert dat. `coerceCapabilityValue()` in HomeyContext.js zet het om op
+  basis van de echte capability-definitie. Elke nieuwe tool die vrije waarden
+  aanneemt heeft dezelfde bescherming nodig.
+
 ### Geheugen & opslag (Homey Pro = beperkt)
 - Limieten staan als constanten bovenin `HomeyContext.js`:
   `MEMORY_MAX_COUNT` 50 × max 500 tekens; prompt-injectie gebudgetteerd op
@@ -99,35 +135,36 @@ lib/
   `get_flow`/`list_flow_cards` opzoeken, nooit gokken (staat ook in de
   systemprompt).
 
-## Eerste test op echte Homey (v0.2.0 — nog NIET gedaan)
+## Test op echte Homey — stand per 2026-07-21 (v0.2.3)
 
-Alles hieronder is alleen offline/e2e-tegen-Zen geverifieerd; dit moet nog op
-een echte Homey Pro (zelfde wifi-netwerk vereist, `homey login` eenmalig):
+Getest op Tarik's Homey Pro (Early 2023, fw 13.3.0). Elke uitkomst is
+gecontroleerd **tegen de Homey API zelf**, niet op wat de assistent beweerde —
+dat verschil legde de stekker-bug bloot (hij meldde eerlijk falen) én had een
+vals succes ook opgemerkt.
 
-```bash
-npm ci && npx homey app run   # laat draaien; logs verschijnen in de terminal
-```
+| # | Test | Status |
+|---|------|--------|
+| 1 | Chat zonder API-key (Zen/big-pickle) | ✅ |
+| 2 | Device aansturen (stekker uit én aan) | ✅ |
+| 3 | Geheugen over gesprekken heen | ⏳ |
+| 4 | Standaard flow maken | ❌ Missing Scopes |
+| 5 | Advanced flow maken | ⏳ geblokkeerd door 4 |
+| 6 | Flow-kaarten `ai_do` / `ai_ask` | ⏳ risico: flow-timeout, maxSteps 6 |
+| 7 | Insights | ⏳ |
+| 8 | Moods (`moods.setMood` nooit live getest) | ⏳ |
+| 9 | NL-vertaling van de settings-pagina | ✅ |
 
-Checklist, in volgorde (instellingenpagina: Homey-app → FlowMind → Instellingen):
+Gevonden en opgelost tijdens die sessie: de 10s-timeout, het waarde-type bij
+`control_device`, twee hardcoded Nederlandse labels, en Markdown die niet
+gerenderd werd. Zie de kritieke lessen hierboven.
 
-1. **Chat zonder key** — direct een vraag typen ("hoeveel apparaten heb ik?").
-   Verwacht: antwoord via Zen/big-pickle, acties zichtbaar onder het antwoord.
-2. **Device aansturen** — "zet lamp X aan/uit". Check dat het echt gebeurt.
-3. **Geheugen** — "onthoud dat …" → verschijnt in de Geheugen-sectie (count
-   gaat omhoog); "vergeet dat" → weer weg. Nieuw gesprek starten en checken
-   dat de AI het feit nog kent.
-4. **Standaard flow maken** — simpele opdracht; check in de Homey-app.
-5. **Advanced flow maken** — check dat de kaarten goed verbonden zijn.
-   Risico: verkeerde card-id's; de AI hoort eerst een bestaande flow te
-   inspecteren.
-6. **Flow-kaarten** — Advanced Flow met "Vraag FlowMind…"-kaart; check dat
-   het antwoord-token in een volgende kaart bruikbaar is. Risico: flow-
-   timeout bij trage modellen (maxSteps staat op 6 voor flow-runs).
-7. **Insights** — "hoe warm was het vannacht in <zone>?".
-8. **Moods** (indien aanwezig) — "activeer mood X" (`moods.setMood` is nog
-   nooit live getest).
-9. **NL/EN** — controleer dat de settings-pagina in het Nederlands verschijnt
-   (Homey staat op NL).
+**Volgende stap:** de API-sleutel inbouwen zodat test 4 en 5 kunnen slagen.
+
+Ook nog open:
+- Het invoerveld op desktop is een vast blokje van 44px; moet meegroeien met
+  de tekst, met een hoger chatvenster op brede schermen.
+- Bij een mislukte flow adviseert de assistent om "Scripts uitvoeren" aan te
+  zetten. Dat advies moet weg — een veiligheidsschakelaar is geen workaround.
 
 Bevindingen/fixes: versie bumpen (app.json + package.json), valideren,
 committen; pushen alleen na toestemming.
