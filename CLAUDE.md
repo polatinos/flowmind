@@ -83,6 +83,16 @@ lib/
 - Flow-runlisteners hebben een krap tijdsbudget: flow-runs gaan door
   `_runFromFlow()` met `maxSteps: 6` en een `[flow]`-prefix zodat de
   systemprompt bevestigingsvragen overslaat.
+- **Autocomplete-argumenten** (bv. `user` van `push_text`): sinds v0.3.1 lost
+  de tool `search_flow_card_autocomplete` deze op via
+  `api.flow.getFlowCardAutocomplete({ id, type, name, query })`; het gekozen
+  resultaat-object gaat integraal als argumentwaarde de kaart in. Zonder deze
+  tool koos het model verkeerde kaarten (les uit test 4/5).
+- **Push ≠ tijdlijn:** een melding op de telefoon is
+  `homey:manager:mobile:push_text`; `notifications:create_notification` is
+  alleen de tijdlijn. Staat ook in de systemprompt.
+- **Advanced flow handmatig startbaar** ⇒ een `start`-kaart (type `start`),
+  niet `programmatic_trigger` — anders "Advanced Flow Is Not triggerable".
 
 ### Flows aanmaken kan NIET met het app-token (opgelost in v0.3.0)
 - `createFlow` faalt met **"Missing Scopes"**. Lezen van flows en apparaten
@@ -146,7 +156,7 @@ lib/
   `get_flow`/`list_flow_cards` opzoeken, nooit gokken (staat ook in de
   systemprompt).
 
-## Test op echte Homey — stand per 2026-07-21 (v0.2.3)
+## Test op echte Homey — stand per 2026-07-21/22 (v0.3.1)
 
 Getest op Tarik's Homey Pro (Early 2023, fw 13.3.0). Elke uitkomst is
 gecontroleerd **tegen de Homey API zelf**, niet op wat de assistent beweerde —
@@ -158,20 +168,17 @@ vals succes ook opgemerkt.
 | 1 | Chat zonder API-key (Zen/big-pickle) | ✅ |
 | 2 | Device aansturen (stekker uit én aan) | ✅ |
 | 3 | Geheugen over gesprekken heen | ⏳ |
-| 4 | Standaard flow maken | ❌ Missing Scopes |
-| 5 | Advanced flow maken | ⏳ geblokkeerd door 4 |
+| 4 | Standaard flow maken via chat | ✅ v0.3.0 (met API-sleutel) |
+| 5 | Advanced flow maken + bewerken via chat | ✅ v0.3.0/0.3.1 (incl. auto-backup) |
 | 6 | Flow-kaarten `ai_do` / `ai_ask` | ⏳ risico: flow-timeout, maxSteps 6 |
 | 7 | Insights | ⏳ |
 | 8 | Moods (`moods.setMood` nooit live getest) | ⏳ |
 | 9 | NL-vertaling van de settings-pagina | ✅ |
+| 10 | Pushmelding via autocomplete (`push_text` + user) | ✅ v0.3.1, push kwam aan op telefoon |
 
-Gevonden en opgelost tijdens die sessie: de 10s-timeout, het waarde-type bij
+Gevonden en opgelost (v0.2.x-sessie): de 10s-timeout, het waarde-type bij
 `control_device`, twee hardcoded Nederlandse labels, en Markdown die niet
 gerenderd werd. Zie de kritieke lessen hierboven.
-
-**Volgende stap (na v0.3.0):** op de Homey de sleutel in de settings-pagina
-plakken en test 4 en 5 draaien; daarna de minimale scopes bepalen met een
-smallere sleutel.
 
 In v0.3.0 opgelost:
 - API-sleutel-setting + lokale API-client met fallback (zie hierboven).
@@ -180,6 +187,16 @@ In v0.3.0 opgelost:
 - Het "Scripts uitvoeren"-advies bij een mislukte flow is vervangen door de
   juiste instructie (API-sleutel instellen), zowel in de systemprompt als in
   de foutmelding van `executeTool`.
+
+In v0.3.1 opgelost (lessen uit test 4/5):
+- Tool `search_flow_card_autocomplete` (autocomplete-argumenten invullen);
+  dropdown-argumenten tonen nu hun `values` in `list_flow_cards`.
+- Systemprompt: pushmelding vs tijdlijn, autocomplete-plicht, en de
+  `start`-kaart-eis voor handmatig startbare advanced flows.
+
+**Volgende stappen:** minimale scopes bepalen met een smallere sleutel;
+tests 3, 6, 7 en 8 draaien. Kwaliteitslat: het niveau van Magnus'
+Home Assistant-werk vóór er over de App Store wordt nagedacht.
 
 Bevindingen/fixes: versie bumpen (app.json + package.json), valideren,
 committen; pushen alleen na toestemming.
