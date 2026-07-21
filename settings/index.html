@@ -66,6 +66,10 @@
     .steps details { background: #fafbff; border: 1px dashed var(--border);
       border-radius: 8px; padding: 6px 8px; }
     .steps code { font-family: ui-monospace, Menlo, monospace; }
+    .chatbar { display: flex; align-items: center; gap: 8px; margin-bottom: 10px;
+      padding-bottom: 10px; border-bottom: 1px solid var(--border); flex-wrap: wrap; }
+    .chatbar label { font-size: 12px; }
+    .chatbar select { width: auto; padding: 6px 8px; font-size: 13px; }
     .composer { display: flex; gap: 8px; margin-top: 10px; }
     .composer textarea {
       flex: 1; resize: none; height: 44px; padding: 10px; border: 1px solid var(--border);
@@ -140,6 +144,11 @@
   </details>
 
   <div class="card">
+    <div class="chatbar">
+      <label for="chatProvider">AI:</label>
+      <select id="chatProvider" title="Kies welk AI-model dit gesprek gebruikt"></select>
+      <span id="chatProviderHint" class="hint" style="margin:0;"></span>
+    </div>
     <div id="chat"></div>
     <div class="composer">
       <textarea id="input" placeholder="Bijv. 'Zet de lampen in de woonkamer op 40%' of 'Maak een advanced flow die…'"></textarea>
@@ -152,6 +161,8 @@
   <script type="text/javascript">
     let messages = []; // { role: 'user'|'assistant', content: string }
     let sending = false;
+    let currentCfg = null;
+    const FREE_PROVIDERS = new Set(['zen']);
 
     function onHomeyReady(Homey) {
       Homey.ready();
@@ -212,12 +223,14 @@
             opt.textContent = p.label + (cfg.keysSet && cfg.keysSet[p.id] ? ' ✓' : '');
             providerSel.appendChild(opt);
           });
-          providerSel.value = cfg.provider || 'anthropic';
+          providerSel.value = cfg.provider || 'zen';
           modelInput.value = cfg.model || '';
           $('compatibleBaseUrl').value = cfg.compatibleBaseUrl || '';
           $('enableCodeExecution').checked = Boolean(cfg.enableCodeExecution);
           updateModelPlaceholder(cfg);
           providerSel.onchange = () => updateModelPlaceholder(cfg);
+          currentCfg = cfg;
+          populateChatProvider(cfg);
         } catch (e) {
           setStatus($('settingsStatus'), 'Config laden mislukt: ' + (e.message || e), 'err');
         }
@@ -226,6 +239,43 @@
       function updateModelPlaceholder(cfg) {
         const p = (cfg.providers || []).find((x) => x.id === providerSel.value);
         if (p) modelInput.placeholder = p.defaultModel + ' (of kies een ander model)';
+      }
+
+      // A provider is usable if its key (or, for the compatible one, base URL) is set.
+      function isReady(cfg, p) {
+        if (p.needsBaseUrl) return Boolean(cfg.compatibleBaseUrl);
+        return Boolean(cfg.keysSet && cfg.keysSet[p.id]);
+      }
+
+      // Fill the in-chat AI switcher so you can flip between free and paid per message.
+      function populateChatProvider(cfg) {
+        const sel = $('chatProvider');
+        sel.innerHTML = '';
+        const all = cfg.providers || [];
+        const ready = all.filter((p) => isReady(cfg, p));
+        const list = ready.length ? ready : all;
+        list.forEach((p) => {
+          const opt = document.createElement('option');
+          opt.value = p.id;
+          const tag = FREE_PROVIDERS.has(p.id) ? ' · gratis' : '';
+          opt.textContent = p.label + tag + (isReady(cfg, p) ? '' : ' (geen key)');
+          sel.appendChild(opt);
+        });
+        const preferred = list.find((p) => p.id === cfg.provider) ? cfg.provider : (list[0] && list[0].id);
+        if (preferred) sel.value = preferred;
+        sel.onchange = updateChatHint;
+        updateChatHint();
+      }
+
+      function updateChatHint() {
+        if (!currentCfg) return;
+        const sel = $('chatProvider');
+        const p = (currentCfg.providers || []).find((x) => x.id === sel.value);
+        if (!p) { $('chatProviderHint').textContent = ''; return; }
+        const model = sel.value === currentCfg.provider && currentCfg.model ? currentCfg.model : p.defaultModel;
+        const price = FREE_PROVIDERS.has(p.id) ? 'gratis' : 'betaald';
+        const ready = isReady(currentCfg, p) ? '' : ' — geen key ingesteld';
+        $('chatProviderHint').textContent = `${price} · ${model || 'model onbekend'}${ready}`;
       }
 
       $('saveBtn').onclick = async () => {
@@ -275,10 +325,18 @@
         setStatus($('chatStatus'), 'HomeyAI denkt na en voert acties uit…');
 
         try {
+          // Use the in-chat AI picker. Only reuse the saved custom model when the
+          // picked provider matches the saved one; otherwise let the backend use
+          // that provider's default model.
+          const chatProvider = $('chatProvider').value || (currentCfg && currentCfg.provider);
+          const model =
+            currentCfg && chatProvider === currentCfg.provider && currentCfg.model
+              ? currentCfg.model
+              : undefined;
           const res = await api('POST', '/chat', {
             messages: messages,
-            provider: providerSel.value,
-            model: modelInput.value.trim() || undefined,
+            provider: chatProvider,
+            model: model,
           });
           typing.remove();
           const reply = (res && res.reply) || '(geen antwoord)';
