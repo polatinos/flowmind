@@ -4,3 +4,12 @@ node_modules/
 *.log
 .DS_Store
 env.json
+
+# Credentials never belong in this repo. The Homey API key lives outside it,
+# under .claude/projects/…/homey-api-key.txt — these patterns are a backstop
+# in case someone drops a copy here.
+.env
+.env.*
+*.key
+*api-key*
+*apikey*
