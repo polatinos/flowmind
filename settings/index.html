@@ -318,6 +318,7 @@
           const res = await api('GET', '/memories');
           const memories = (res && res.memories) || [];
           listEl.innerHTML = '';
+          setStatus($('memStatus'), res && res.limit ? memories.length + ' / ' + res.limit : '');
           if (!memories.length) {
             const empty = document.createElement('div');
             empty.className = 'hint';
