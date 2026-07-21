@@ -194,6 +194,25 @@ In v0.3.1 opgelost (lessen uit test 4/5):
 - Systemprompt: pushmelding vs tijdlijn, autocomplete-plicht, en de
   `start`-kaart-eis voor handmatig startbare advanced flows.
 
+v0.4.0 — terminal-UI + attitude:
+- Settings-pagina volledig terminal-stijl (donker, monospace, `❯`-prompt,
+  secties als `[ instellingen ]`). Statusregel onder de composer
+  (provider · model · lokaal ✓ + verstreken seconden), kopregel met
+  verbindingsstatus.
+- **Live actielog**: de app stuurt per toolstap een realtime `chatStep`-event
+  (`onStep`-callback in `runAssistant` → `homey.api.realtime`); de pagina
+  toont `› tool …/✓/⚠` live en vervangt dat na afloop door het bestaande
+  inklapbare stappenblokje.
+- Slash-commando's client-side: `/clear`, `/help`, `/memories`.
+- Persoonlijkheid in de systemprompt: droog, kort, licht eigenwijs; geeft
+  tegengas bij onverstandige verzoeken; géén persoonlijkheid in `[flow]`-runs.
+- **Les (bijna-incident):** zonder de echte ID's in de gesprekscontext
+  verzon het model 17 device-UUID's en vuurde er blind commando's op af
+  (alle faalden toevallig op Not Found). De gesprekshistorie bevat alléén
+  tekst, geen toolresultaten, dus dit kan in productie ook. Mitigatie: de
+  `control_device`-beschrijving eist nu expliciet ID's uit een tool-result
+  van dít gesprek. Overweeg later hetzelfde voor andere id-parameters.
+
 **Volgende stappen:** minimale scopes bepalen met een smallere sleutel;
 tests 3, 6, 7 en 8 draaien. Kwaliteitslat: het niveau van Magnus'
 Home Assistant-werk vóór er over de App Store wordt nagedacht.

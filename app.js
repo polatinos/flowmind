@@ -190,7 +190,15 @@ module.exports = class FlowMindApp extends Homey.App {
     const job = { id: jobId, status: 'pending', createdAt: Date.now(), result: null, error: null };
     this._chatJobs.set(jobId, job);
 
-    this.chat(body)
+    // Stream tool-step progress to the settings page so its terminal can show
+    // a live action log while the turn runs.
+    const onStep = (step) => {
+      try {
+        this.homey.api.realtime('chatStep', { jobId, ...step });
+      } catch (err) { /* page may be closed; harmless */ }
+    };
+
+    this.chat(body, onStep)
       .then((result) => {
         job.status = 'done';
         job.result = result;
@@ -230,7 +238,7 @@ module.exports = class FlowMindApp extends Homey.App {
    * @param {object} body
    * @param {Array<{role,content}>} body.messages full chat history
    */
-  async chat(body = {}) {
+  async chat(body = {}, onStep = null) {
     const messages = Array.isArray(body.messages) ? body.messages : [];
     if (!messages.length) throw new Error('No messages provided.');
 
@@ -268,6 +276,7 @@ module.exports = class FlowMindApp extends Homey.App {
       })),
       homeyContext: this.homeyContext,
       log: (msg) => this.log(`${msg} (+${Date.now() - startedAt}ms)`),
+      onStep,
     }).catch((err) => {
       this.error(`[chat] failed after ${Date.now() - startedAt}ms:`, err.message);
       throw err;

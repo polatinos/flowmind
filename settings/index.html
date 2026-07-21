@@ -6,50 +6,63 @@
   <title>FlowMind</title>
   <style>
     :root {
-      --bg: #f5f6fa;
-      --card: #ffffff;
-      --border: #e3e5ec;
-      --text: #1c1e26;
-      --muted: #6b7280;
-      --brand: #5b5bf7;
-      --brand-soft: #ecebff;
-      --user: #5b5bf7;
-      --assistant: #f0f1f6;
-      --danger: #d64545;
-      --ok: #2e9e5b;
+      --bg: #0b0e14;
+      --card: #10141c;
+      --border: #232b38;
+      --text: #d6dde8;
+      --muted: #78828f;
+      --brand: #4fd484;
+      --brand-soft: #12241a;
+      --user: #4fd484;
+      --assistant: #10141c;
+      --danger: #f47067;
+      --ok: #4fd484;
+      --amber: #e0af68;
     }
     * { box-sizing: border-box; }
     body {
-      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
-      margin: 0; padding: 16px; color: var(--text); background: var(--bg);
+      font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, "Cascadia Mono", monospace;
+      margin: 0; padding: 16px; color: var(--text); background: var(--bg); font-size: 14px;
     }
-    h2 { margin: 0 0 4px; font-size: 18px; }
-    .sub { color: var(--muted); font-size: 13px; margin-bottom: 16px; }
+    .term-head { display: flex; align-items: baseline; gap: 10px; margin-bottom: 2px; }
+    h2 { margin: 0; font-size: 16px; letter-spacing: .5px; }
+    h2::before { content: "❯ "; color: var(--brand); }
+    .term-conn { font-size: 12px; color: var(--muted); }
+    .term-conn.ok { color: var(--ok); }
+    .sub { color: var(--muted); font-size: 12px; margin-bottom: 14px; }
     .card {
       background: var(--card); border: 1px solid var(--border);
-      border-radius: 12px; padding: 14px; margin-bottom: 14px;
+      border-radius: 8px; padding: 14px; margin-bottom: 14px;
     }
     .row { display: flex; gap: 10px; flex-wrap: wrap; align-items: flex-end; }
     .field { display: flex; flex-direction: column; gap: 4px; flex: 1 1 180px; }
     label { font-size: 12px; color: var(--muted); font-weight: 600; }
     input, select {
       width: 100%; padding: 9px 10px; border: 1px solid var(--border);
-      border-radius: 8px; font-size: 14px; background: #fff; color: var(--text);
+      border-radius: 6px; font-size: 14px; background: var(--bg); color: var(--text);
+      font-family: inherit;
     }
+    input:focus, select:focus, textarea:focus { outline: 1px solid var(--brand); }
     button {
-      border: none; border-radius: 8px; padding: 9px 16px; font-size: 14px;
-      font-weight: 600; cursor: pointer; background: var(--brand); color: #fff;
+      border: 1px solid var(--brand); border-radius: 6px; padding: 8px 14px; font-size: 13px;
+      font-weight: 600; cursor: pointer; background: transparent; color: var(--brand);
+      font-family: inherit;
     }
-    button.secondary { background: var(--brand-soft); color: var(--brand); }
-    button.danger { background: transparent; color: var(--danger); padding: 4px 8px; font-size: 12px; }
+    button.secondary { border-color: var(--border); color: var(--muted); }
+    button.danger { border: none; background: transparent; color: var(--danger); padding: 4px 8px; font-size: 12px; }
     button:disabled { opacity: .55; cursor: default; }
     .hint { font-size: 12px; color: var(--muted); margin-top: 6px; }
     .status { font-size: 12px; margin-top: 8px; min-height: 16px; }
     .status.ok { color: var(--ok); }
     .status.err { color: var(--danger); }
     details.settings summary {
-      cursor: pointer; font-weight: 600; font-size: 14px; padding: 4px 0;
+      cursor: pointer; font-weight: 600; font-size: 13px; padding: 4px 0;
+      color: var(--muted); list-style: none;
     }
+    details.settings summary::-webkit-details-marker { display: none; }
+    details.settings summary::before { content: "[ "; color: var(--brand); }
+    details.settings summary::after { content: " ]"; color: var(--brand); }
+    details.settings[open] summary { color: var(--text); }
     .mem-row {
       display: flex; align-items: center; justify-content: space-between; gap: 8px;
       padding: 7px 0; border-bottom: 1px solid var(--border); font-size: 13px;
@@ -58,46 +71,57 @@
     .mem-text { flex: 1; word-break: break-word; }
     /* Chat */
     #chat {
-      height: 46vh; min-height: 260px; overflow-y: auto; padding: 6px;
+      height: 50vh; min-height: 280px; overflow-y: auto; padding: 6px;
       display: flex; flex-direction: column; gap: 10px;
     }
-    .msg { max-width: 88%; padding: 9px 12px; border-radius: 12px; font-size: 14px;
-      line-height: 1.4; white-space: pre-wrap; word-wrap: break-word; }
-    .msg.user { align-self: flex-end; background: var(--user); color: #fff;
-      border-bottom-right-radius: 3px; }
-    .msg.assistant { align-self: flex-start; background: var(--assistant);
-      border-bottom-left-radius: 3px; }
-    .msg.system { align-self: center; background: transparent; color: var(--muted);
-      font-size: 12px; text-align: center; }
+    .msg { max-width: 100%; padding: 0; font-size: 14px;
+      line-height: 1.55; white-space: pre-wrap; word-wrap: break-word; }
+    .msg.user { align-self: stretch; color: var(--user); }
+    .msg.user::before { content: "❯ "; }
+    .msg.assistant { align-self: stretch; color: var(--text); }
+    .msg.system { align-self: flex-start; color: var(--muted); font-size: 12px; }
     /* Rendered Markdown (assistant replies only): blocks handle the line
        breaks, so pre-wrap would double the spacing. */
     .msg.md { white-space: normal; }
     .msg.md ul, .msg.md ol { margin: 4px 0; padding-left: 20px; }
     .msg.md li { margin: 2px 0; }
-    .msg.md code { font-family: ui-monospace, Menlo, monospace; font-size: 13px;
-      background: rgba(0,0,0,.06); padding: 1px 4px; border-radius: 4px; }
-    .msg.md pre { background: rgba(0,0,0,.06); padding: 8px; border-radius: 8px;
+    .msg.md code { font-family: inherit; font-size: 13px; color: var(--amber);
+      background: rgba(255,255,255,.06); padding: 1px 4px; border-radius: 4px; }
+    .msg.md pre { background: rgba(255,255,255,.05); padding: 8px; border-radius: 6px;
       overflow-x: auto; margin: 6px 0; }
     .msg.md pre code { background: none; padding: 0; }
     .msg.md .md-gap { height: 8px; }
     .msg.md .md-h { font-weight: 700; margin: 6px 0 2px; }
-    .steps { align-self: flex-start; max-width: 88%; font-size: 11px; color: var(--muted); }
-    .steps details { background: #fafbff; border: 1px dashed var(--border);
-      border-radius: 8px; padding: 6px 8px; }
-    .steps code { font-family: ui-monospace, Menlo, monospace; }
+    .steps { align-self: flex-start; max-width: 100%; font-size: 11px; color: var(--muted); }
+    .steps details { background: transparent; border: 1px dashed var(--border);
+      border-radius: 6px; padding: 6px 8px; }
+    .steps code { font-family: inherit; }
+    /* Live action log while a turn is running */
+    .livelog { align-self: flex-start; font-size: 12px; color: var(--muted);
+      display: flex; flex-direction: column; gap: 2px; }
+    .livelog .st::before { content: "› "; color: var(--brand); }
+    .livelog .st.ok { color: var(--muted); }
+    .livelog .st.run { color: var(--text); }
+    .livelog .st.err { color: var(--danger); }
     .chatbar { display: flex; align-items: center; gap: 8px; margin-bottom: 10px;
       padding-bottom: 10px; border-bottom: 1px solid var(--border); flex-wrap: wrap; }
     .chatbar label { font-size: 12px; }
     .chatbar select { width: auto; padding: 6px 8px; font-size: 13px; }
     .composer { display: flex; gap: 8px; margin-top: 10px; align-items: flex-end; }
+    .composer .prompt { color: var(--brand); padding: 10px 0; user-select: none; }
     /* The input grows with its content (a script syncs height to scrollHeight),
        terminal-style, up to ~8 lines; beyond that it scrolls internally. */
     .composer textarea {
       flex: 1; resize: none; height: 44px; min-height: 44px; max-height: 180px;
-      padding: 10px; border: 1px solid var(--border);
-      border-radius: 10px; font-size: 14px; font-family: inherit; overflow-y: auto;
+      padding: 10px; border: 1px solid var(--border); background: var(--bg); color: var(--text);
+      border-radius: 6px; font-size: 14px; font-family: inherit; overflow-y: auto;
     }
     .typing { font-style: italic; color: var(--muted); }
+    /* Persistent status line under the composer: provider · model · mode + timer */
+    .termline { display: flex; justify-content: space-between; gap: 8px;
+      font-size: 12px; color: var(--muted); border-top: 1px solid var(--border);
+      margin-top: 10px; padding-top: 8px; }
+    .termline .ok { color: var(--ok); }
     /* More room for the conversation on desktop screens. */
     @media (min-width: 900px) {
       #chat { height: 62vh; min-height: 420px; }
@@ -105,7 +129,10 @@
   </style>
 </head>
 <body>
-  <h2>FlowMind</h2>
+  <div class="term-head">
+    <h2>FlowMind</h2>
+    <span id="connStatus" class="term-conn"></span>
+  </div>
   <div class="sub" data-i18n="settings.subtitle">Chat in plain language with an AI that reads your Homey, controls devices and builds flows.</div>
 
   <details class="settings card">
@@ -198,8 +225,13 @@
     </div>
     <div id="chat"></div>
     <div class="composer">
+      <span class="prompt">❯</span>
       <textarea id="input"></textarea>
       <button id="sendBtn" data-i18n="settings.send">Send</button>
+    </div>
+    <div class="termline">
+      <span id="termStatus"></span>
+      <span id="termTimer"></span>
     </div>
     <div id="chatStatus" class="status"></div>
   </div>
@@ -372,6 +404,7 @@
           $('compatibleBaseUrl').value = cfg.compatibleBaseUrl || '';
           $('enableCodeExecution').checked = Boolean(cfg.enableCodeExecution);
           updateHomeyKeyStatus(cfg.homeyApi || {});
+          updateConnStatus(cfg.homeyApi || {});
           updateModelPlaceholder(cfg);
           providerSel.onchange = () => updateModelPlaceholder(cfg);
           currentCfg = cfg;
@@ -379,6 +412,32 @@
         } catch (e) {
           setStatus($('settingsStatus'), t('configFailed') + (e.message || e), 'err');
         }
+      }
+
+      // Header + status line: show at a glance whether flows are unlocked.
+      function updateConnStatus(ha) {
+        const conn = $('connStatus');
+        if (ha.keySet && ha.mode === 'local') {
+          conn.textContent = t('connLocal');
+          conn.className = 'term-conn ok';
+        } else {
+          conn.textContent = t('connApp');
+          conn.className = 'term-conn';
+        }
+        updateTermStatus();
+      }
+
+      function updateTermStatus() {
+        if (!currentCfg) return;
+        const sel = $('chatProvider');
+        const p = (currentCfg.providers || []).find((x) => x.id === sel.value);
+        const model = p
+          ? (sel.value === currentCfg.provider && currentCfg.model ? currentCfg.model : p.defaultModel)
+          : '';
+        const ha = currentCfg.homeyApi || {};
+        const mode = ha.keySet && ha.mode === 'local' ? t('connLocal') : t('connApp');
+        $('termStatus').textContent =
+          (p ? p.label : '?') + ' · ' + (model || t('modelUnknown')) + ' · ' + mode;
       }
 
       // The key unlocks flow creation; show plainly whether it works so the
@@ -450,6 +509,7 @@
         const price = FREE_PROVIDERS.has(p.id) ? t('free') : t('paid');
         const ready = isReady(currentCfg, p) ? '' : t('noKeySet');
         $('chatProviderHint').textContent = price + ' · ' + (model || t('modelUnknown')) + ready;
+        updateTermStatus();
       }
 
       async function loadMemories() {
@@ -541,6 +601,56 @@
       let pokeJob = null;
       Homey.on('chat', () => { if (pokeJob) pokeJob(); });
 
+      // Live action log: the app emits a 'chatStep' event per tool call while
+      // a turn runs. Lines appear terminal-style above the typing indicator
+      // and are replaced by the collapsed steps summary when the turn ends.
+      let currentJobId = null;
+      let typingEl = null;
+      let liveLog = null;
+      let liveLines = [];
+
+      Homey.on('chatStep', (data) => {
+        if (!data || !currentJobId || data.jobId !== currentJobId) return;
+        showLiveStep(data);
+      });
+
+      function ensureLiveLog() {
+        if (liveLog) return liveLog;
+        liveLog = document.createElement('div');
+        liveLog.className = 'livelog';
+        const chat = $('chat');
+        if (typingEl && typingEl.parentNode === chat) chat.insertBefore(liveLog, typingEl);
+        else chat.appendChild(liveLog);
+        return liveLog;
+      }
+
+      function showLiveStep(step) {
+        ensureLiveLog();
+        if (step.status === 'running') {
+          const el = document.createElement('div');
+          el.className = 'st run';
+          el.textContent = step.tool + ' …';
+          liveLog.appendChild(el);
+          liveLines.push({ tool: step.tool, el, done: false });
+        } else {
+          let entry = null;
+          for (let i = liveLines.length - 1; i >= 0; i--) {
+            if (liveLines[i].tool === step.tool && !liveLines[i].done) { entry = liveLines[i]; break; }
+          }
+          if (!entry) return;
+          entry.done = true;
+          entry.el.className = 'st ' + (step.status === 'error' ? 'err' : 'ok');
+          entry.el.textContent = step.tool + (step.status === 'error' ? ' ⚠ ' + (step.error || '') : ' ✓');
+        }
+        $('chat').scrollTop = $('chat').scrollHeight;
+      }
+
+      function clearLiveLog() {
+        if (liveLog && liveLog.parentNode) liveLog.parentNode.removeChild(liveLog);
+        liveLog = null;
+        liveLines = [];
+      }
+
       const JOB_POLL_MS = 1500;
       const JOB_MAX_WAIT_MS = 5 * 60 * 1000;
 
@@ -575,10 +685,35 @@
         });
       }
 
+      // Slash commands are handled locally, terminal-style.
+      async function handleCommand(cmd) {
+        const c = cmd.toLowerCase();
+        if (c === '/clear') { $('clearBtn').onclick(); return; }
+        if (c === '/help') { addMessage('system', t('helpText')); return; }
+        if (c === '/memories') {
+          try {
+            const res = await api('GET', '/memories');
+            const memories = (res && res.memories) || [];
+            if (!memories.length) { addMessage('system', t('memoriesEmpty')); return; }
+            addMessage('system', memories.map((m) => '· ' + m.text).join('\n'));
+          } catch (e) {
+            addMessage('system', t('memoriesFailed') + (e.message || e));
+          }
+          return;
+        }
+        addMessage('system', t('unknownCommand') + cmd);
+      }
+
       async function send() {
         if (sending) return;
         const text = $('input').value.trim();
         if (!text) return;
+        if (text.charAt(0) === '/') {
+          $('input').value = '';
+          $('input').style.height = '44px';
+          handleCommand(text);
+          return;
+        }
         sending = true;
         $('sendBtn').disabled = true;
         $('input').value = '';
@@ -589,13 +724,14 @@
 
         const typing = addMessage('assistant', '…');
         typing.classList.add('typing');
+        typingEl = typing;
         // Show elapsed seconds while waiting: long turns are normal, and the
         // number tells us where a failure fell (client abort vs backend error).
         const startedAt = Date.now();
         const elapsed = () => Math.round((Date.now() - startedAt) / 1000);
-        setStatus($('chatStatus'), t('thinking'));
+        $('termTimer').textContent = t('thinking');
         const ticker = setInterval(() => {
-          setStatus($('chatStatus'), t('thinking') + ' (' + elapsed() + 's)');
+          $('termTimer').textContent = elapsed() + 's';
         }, 1000);
 
         try {
@@ -613,6 +749,7 @@
             model: model,
           });
           if (!started || !started.jobId) throw new Error(t('jobLost'));
+          currentJobId = started.jobId;
           const res = await waitForJob(started.jobId);
           typing.remove();
           const reply = (res && res.reply) || t('noReply');
@@ -637,6 +774,10 @@
           }
         } finally {
           clearInterval(ticker);
+          $('termTimer').textContent = '';
+          clearLiveLog();
+          currentJobId = null;
+          typingEl = null;
           sending = false;
           $('sendBtn').disabled = false;
         }
