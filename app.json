@@ -1,6 +1,6 @@
 {
   "id": "nl.polatinos.flowmind",
-  "version": "0.1.0",
+  "version": "0.2.0",
   "compatibility": ">=8.1.4",
   "sdk": 3,
   "platforms": ["local"],
@@ -24,7 +24,81 @@
   "api": {
     "getConfig": { "method": "GET", "path": "/config" },
     "saveConfig": { "method": "PUT", "path": "/config" },
-    "chat": { "method": "POST", "path": "/chat" }
+    "chat": { "method": "POST", "path": "/chat" },
+    "getMemories": { "method": "GET", "path": "/memories" },
+    "deleteMemory": { "method": "DELETE", "path": "/memories/:id" }
+  },
+  "flow": {
+    "actions": [
+      {
+        "id": "ai_do",
+        "title": {
+          "en": "Have FlowMind do…",
+          "nl": "Laat FlowMind iets doen…"
+        },
+        "titleFormatted": {
+          "en": "Have FlowMind [[instruction]]",
+          "nl": "Laat FlowMind [[instruction]]"
+        },
+        "hint": {
+          "en": "The AI performs this instruction on your Homey (control devices, check things, etc.).",
+          "nl": "De AI voert deze opdracht uit op je Homey (apparaten aansturen, dingen controleren, enz.)."
+        },
+        "args": [
+          {
+            "name": "instruction",
+            "type": "text",
+            "title": {
+              "en": "Instruction",
+              "nl": "Opdracht"
+            },
+            "placeholder": {
+              "en": "turn off all lights downstairs",
+              "nl": "zet alle lampen beneden uit"
+            }
+          }
+        ]
+      },
+      {
+        "id": "ai_ask",
+        "title": {
+          "en": "Ask FlowMind…",
+          "nl": "Vraag FlowMind…"
+        },
+        "titleFormatted": {
+          "en": "Ask FlowMind [[question]]",
+          "nl": "Vraag FlowMind [[question]]"
+        },
+        "hint": {
+          "en": "The AI answers your question and returns the answer as a tag for the next cards (Advanced Flow).",
+          "nl": "De AI beantwoordt je vraag en geeft het antwoord terug als tag voor de volgende kaarten (Advanced Flow)."
+        },
+        "args": [
+          {
+            "name": "question",
+            "type": "text",
+            "title": {
+              "en": "Question",
+              "nl": "Vraag"
+            },
+            "placeholder": {
+              "en": "which windows are still open?",
+              "nl": "welke ramen staan nog open?"
+            }
+          }
+        ],
+        "tokens": [
+          {
+            "name": "response",
+            "type": "string",
+            "title": {
+              "en": "Response",
+              "nl": "Antwoord"
+            }
+          }
+        ]
+      }
+    ]
   },
   "images": {
     "small": "/assets/images/small.png",

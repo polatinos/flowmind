@@ -17,4 +17,12 @@ module.exports = {
   async chat({ homey, body }) {
     return homey.app.chat(body || {});
   },
+
+  async getMemories({ homey }) {
+    return homey.app.getMemories();
+  },
+
+  async deleteMemory({ homey, params }) {
+    return homey.app.deleteMemory({ id: params && params.id });
+  },
 };

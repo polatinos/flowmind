@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html lang="nl">
+<html lang="en">
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
@@ -41,6 +41,7 @@
       font-weight: 600; cursor: pointer; background: var(--brand); color: #fff;
     }
     button.secondary { background: var(--brand-soft); color: var(--brand); }
+    button.danger { background: transparent; color: var(--danger); padding: 4px 8px; font-size: 12px; }
     button:disabled { opacity: .55; cursor: default; }
     .hint { font-size: 12px; color: var(--muted); margin-top: 6px; }
     .status { font-size: 12px; margin-top: 8px; min-height: 16px; }
@@ -49,6 +50,12 @@
     details.settings summary {
       cursor: pointer; font-weight: 600; font-size: 14px; padding: 4px 0;
     }
+    .mem-row {
+      display: flex; align-items: center; justify-content: space-between; gap: 8px;
+      padding: 7px 0; border-bottom: 1px solid var(--border); font-size: 13px;
+    }
+    .mem-row:last-child { border-bottom: none; }
+    .mem-text { flex: 1; word-break: break-word; }
     /* Chat */
     #chat {
       height: 46vh; min-height: 260px; overflow-y: auto; padding: 6px;
@@ -80,79 +87,88 @@
 </head>
 <body>
   <h2>FlowMind</h2>
-  <div class="sub">Chat in gewone taal met een AI die je Homey uitleest, apparaten aanstuurt en flows bouwt.</div>
+  <div class="sub" data-i18n="settings.subtitle">Chat in plain language with an AI that reads your Homey, controls devices and builds flows.</div>
 
   <details class="settings card">
-    <summary>Instellingen (AI-provider &amp; API-keys)</summary>
+    <summary data-i18n="settings.settingsSummary">Settings (AI provider &amp; API keys)</summary>
     <div style="margin-top: 12px;">
       <div class="row">
         <div class="field">
-          <label for="provider">AI-provider</label>
+          <label for="provider" data-i18n="settings.providerLabel">AI provider</label>
           <select id="provider"></select>
         </div>
         <div class="field">
-          <label for="model">Model</label>
-          <input id="model" type="text" placeholder="standaardmodel" />
+          <label for="model" data-i18n="settings.modelLabel">Model</label>
+          <input id="model" type="text" />
         </div>
       </div>
       <div style="margin-top: 12px; padding: 12px; border: 1px solid var(--brand); background: var(--brand-soft); border-radius: 10px;">
-        <div style="font-weight: 700; font-size: 13px; color: var(--brand); margin-bottom: 2px;">⭐ Makkelijkste optie: OpenCode Zen (gratis)</div>
-        <div class="hint" style="margin: 0 0 8px;">Werkt direct, zonder key: provider <b>OpenCode Zen</b> staat al geselecteerd en gebruikt het gratis model <b>Big Pickle</b>. Optioneel kun je een eigen key instellen (<b>opencode.ai/auth</b>), bijv. voor hogere limieten.</div>
+        <div style="font-weight: 700; font-size: 13px; color: var(--brand); margin-bottom: 2px;" data-i18n="settings.zenTitle">⭐ Easiest option: OpenCode Zen (free)</div>
+        <div class="hint" style="margin: 0 0 8px;" data-i18n="settings.zenHint">Works out of the box, no key needed: the provider OpenCode Zen is selected by default and uses the free Big Pickle model. Optionally set your own key (opencode.ai/auth), e.g. for higher limits.</div>
         <div class="field">
-          <label for="zenApiKey">OpenCode Zen API-key (optioneel)</label>
-          <input id="zenApiKey" type="password" placeholder="plak je Zen-key…" autocomplete="off" />
+          <label for="zenApiKey" data-i18n="settings.zenKeyLabel">OpenCode Zen API key (optional)</label>
+          <input id="zenApiKey" type="password" autocomplete="off" />
         </div>
       </div>
       <div class="row" style="margin-top: 10px;">
         <div class="field">
-          <label for="anthropicApiKey">Anthropic API-key</label>
+          <label for="anthropicApiKey" data-i18n="settings.anthropicKeyLabel">Anthropic API key</label>
           <input id="anthropicApiKey" type="password" placeholder="sk-ant-…" autocomplete="off" />
         </div>
         <div class="field">
-          <label for="openaiApiKey">OpenAI API-key</label>
+          <label for="openaiApiKey" data-i18n="settings.openaiKeyLabel">OpenAI API key</label>
           <input id="openaiApiKey" type="password" placeholder="sk-…" autocomplete="off" />
         </div>
       </div>
       <div class="row" style="margin-top: 10px;">
         <div class="field">
-          <label for="geminiApiKey">Google Gemini API-key</label>
+          <label for="geminiApiKey" data-i18n="settings.geminiKeyLabel">Google Gemini API key</label>
           <input id="geminiApiKey" type="password" placeholder="AIza…" autocomplete="off" />
         </div>
         <div class="field">
-          <label for="compatibleApiKey">OpenAI-compatibel API-key <span style="font-weight:400">(Ollama: leeg laten)</span></label>
-          <input id="compatibleApiKey" type="password" placeholder="optioneel" autocomplete="off" />
+          <label for="compatibleApiKey" data-i18n="settings.compatibleKeyLabel">OpenAI-compatible API key (Ollama: leave empty)</label>
+          <input id="compatibleApiKey" type="password" autocomplete="off" />
         </div>
       </div>
       <div class="row" style="margin-top: 10px;">
         <div class="field">
-          <label for="compatibleBaseUrl">OpenAI-compatibel Base URL</label>
-          <input id="compatibleBaseUrl" type="text" placeholder="https://api.groq.com/openai/v1 of http://&lt;homey-ip&gt;:11434/v1" autocomplete="off" />
+          <label for="compatibleBaseUrl" data-i18n="settings.compatibleBaseUrlLabel">OpenAI-compatible Base URL</label>
+          <input id="compatibleBaseUrl" type="text" placeholder="https://api.groq.com/openai/v1, http://<homey-ip>:11434/v1" autocomplete="off" />
         </div>
       </div>
-      <div class="hint">Keys worden versleuteld opgeslagen op je Homey en nooit teruggestuurd naar deze pagina. Laat een veld leeg om de bestaande key te behouden. De Base URL geldt voor de provider "OpenAI-compatibel" (Ollama/Groq/lokaal, of Gemini via Google's OpenAI-endpoint).</div>
+      <div class="hint" data-i18n="settings.keysHint">Keys are stored encrypted on your Homey and never sent back to this page. Leave a field empty to keep the existing key. The Base URL applies to the "OpenAI-compatible" provider (Ollama/Groq/local, or Gemini via Google's OpenAI endpoint).</div>
       <label style="display:flex; align-items:center; gap:8px; margin-top:12px; font-size:13px; color:var(--text); font-weight:600; cursor:pointer;">
         <input id="enableCodeExecution" type="checkbox" style="width:auto;" />
-        Scripts uitvoeren toestaan (de AI mag JavaScript op je Homey draaien)
+        <span data-i18n="settings.allowScripts">Allow script execution (the AI may run JavaScript on your Homey)</span>
       </label>
-      <div class="hint">Alleen inschakelen als je begrijpt wat dit doet: de AI kan dan code uitvoeren met toegang tot je Homey. Standaard uit.</div>
+      <div class="hint" data-i18n="settings.allowScriptsHint">Only enable this if you understand what it does: the AI can then execute code with access to your Homey. Off by default.</div>
       <div class="row" style="margin-top: 12px;">
-        <button id="saveBtn">Opslaan</button>
-        <button id="clearBtn" class="secondary" type="button">Wis gesprek</button>
+        <button id="saveBtn" data-i18n="settings.save">Save</button>
+        <button id="clearBtn" class="secondary" type="button" data-i18n="settings.clearChat">Clear conversation</button>
       </div>
       <div id="settingsStatus" class="status"></div>
     </div>
   </details>
 
+  <details class="settings card" id="memDetails">
+    <summary data-i18n="settings.memoriesSummary">Memory (what the AI remembers)</summary>
+    <div style="margin-top: 10px;">
+      <div class="hint" style="margin-top:0;" data-i18n="settings.memoriesHint">The AI saves lasting facts and preferences here (e.g. "the nursery must stay at 19°C"). They are included in every conversation. You can also just tell the AI to remember or forget something.</div>
+      <div id="memList" style="margin-top: 8px;"></div>
+      <div id="memStatus" class="status"></div>
+    </div>
+  </details>
+
   <div class="card">
     <div class="chatbar">
-      <label for="chatProvider">AI:</label>
-      <select id="chatProvider" title="Kies welk AI-model dit gesprek gebruikt"></select>
+      <label for="chatProvider" data-i18n="settings.aiLabel">AI:</label>
+      <select id="chatProvider"></select>
       <span id="chatProviderHint" class="hint" style="margin:0;"></span>
     </div>
     <div id="chat"></div>
     <div class="composer">
-      <textarea id="input" placeholder="Bijv. 'Zet de lampen in de woonkamer op 40%' of 'Maak een advanced flow die…'"></textarea>
-      <button id="sendBtn">Stuur</button>
+      <textarea id="input"></textarea>
+      <button id="sendBtn" data-i18n="settings.send">Send</button>
     </div>
     <div id="chatStatus" class="status"></div>
   </div>
@@ -176,6 +192,16 @@
       const $ = (id) => document.getElementById(id);
       const providerSel = $('provider');
       const modelInput = $('model');
+
+      // All user-facing strings live in /locales/*.json; static markup is
+      // translated by homey.js via data-i18n, dynamic strings via t().
+      const t = (key, tokens) => Homey.__('settings.' + key, tokens || {});
+
+      // Placeholders cannot use data-i18n (it replaces text content).
+      $('input').placeholder = t('chatPlaceholder');
+      $('zenApiKey').placeholder = t('zenKeyPlaceholder');
+      $('compatibleApiKey').placeholder = t('compatibleKeyPlaceholder');
+      $('chatProvider').title = t('aiPickerTitle');
 
       function api(method, path, body) {
         return new Promise((resolve, reject) => {
@@ -214,7 +240,7 @@
           })
           .join('<br>');
         wrap.innerHTML =
-          '<details><summary>' + steps.length + ' actie(s) uitgevoerd</summary>' + lines + '</details>';
+          '<details><summary>' + esc(t('actionsDone', { count: steps.length })) + '</summary>' + lines + '</details>';
         chat.appendChild(wrap);
         chat.scrollTop = chat.scrollHeight;
       }
@@ -238,13 +264,13 @@
           currentCfg = cfg;
           populateChatProvider(cfg);
         } catch (e) {
-          setStatus($('settingsStatus'), 'Config laden mislukt: ' + (e.message || e), 'err');
+          setStatus($('settingsStatus'), t('configFailed') + (e.message || e), 'err');
         }
       }
 
       function updateModelPlaceholder(cfg) {
         const p = (cfg.providers || []).find((x) => x.id === providerSel.value);
-        if (p) modelInput.placeholder = p.defaultModel + ' (of kies een ander model)';
+        if (p) modelInput.placeholder = p.defaultModel + t('modelPlaceholderSuffix');
       }
 
       // A provider is usable if its key (or, for the compatible one, base URL)
@@ -265,8 +291,8 @@
         list.forEach((p) => {
           const opt = document.createElement('option');
           opt.value = p.id;
-          const tag = FREE_PROVIDERS.has(p.id) ? ' · gratis' : '';
-          opt.textContent = p.label + tag + (isReady(cfg, p) ? '' : ' (geen key)');
+          const tag = FREE_PROVIDERS.has(p.id) ? ' · ' + t('free') : '';
+          opt.textContent = p.label + tag + (isReady(cfg, p) ? '' : ' ' + t('noKeySuffix').trim());
           sel.appendChild(opt);
         });
         const preferred = list.find((p) => p.id === cfg.provider) ? cfg.provider : (list[0] && list[0].id);
@@ -281,13 +307,58 @@
         const p = (currentCfg.providers || []).find((x) => x.id === sel.value);
         if (!p) { $('chatProviderHint').textContent = ''; return; }
         const model = sel.value === currentCfg.provider && currentCfg.model ? currentCfg.model : p.defaultModel;
-        const price = FREE_PROVIDERS.has(p.id) ? 'gratis' : 'betaald';
-        const ready = isReady(currentCfg, p) ? '' : ' — geen key ingesteld';
-        $('chatProviderHint').textContent = `${price} · ${model || 'model onbekend'}${ready}`;
+        const price = FREE_PROVIDERS.has(p.id) ? t('free') : t('paid');
+        const ready = isReady(currentCfg, p) ? '' : t('noKeySet');
+        $('chatProviderHint').textContent = price + ' · ' + (model || t('modelUnknown')) + ready;
       }
 
+      async function loadMemories() {
+        const listEl = $('memList');
+        try {
+          const res = await api('GET', '/memories');
+          const memories = (res && res.memories) || [];
+          listEl.innerHTML = '';
+          if (!memories.length) {
+            const empty = document.createElement('div');
+            empty.className = 'hint';
+            empty.textContent = t('memoriesEmpty');
+            listEl.appendChild(empty);
+            return;
+          }
+          memories.forEach((m) => {
+            const row = document.createElement('div');
+            row.className = 'mem-row';
+            const text = document.createElement('div');
+            text.className = 'mem-text';
+            text.textContent = m.text;
+            const btn = document.createElement('button');
+            btn.className = 'danger';
+            btn.type = 'button';
+            btn.textContent = t('forget');
+            btn.onclick = async () => {
+              btn.disabled = true;
+              try {
+                await api('DELETE', '/memories/' + encodeURIComponent(m.id));
+                loadMemories();
+              } catch (e) {
+                btn.disabled = false;
+                setStatus($('memStatus'), t('memoriesFailed') + (e.message || e), 'err');
+              }
+            };
+            row.appendChild(text);
+            row.appendChild(btn);
+            listEl.appendChild(row);
+          });
+        } catch (e) {
+          setStatus($('memStatus'), t('memoriesFailed') + (e.message || e), 'err');
+        }
+      }
+      $('memDetails').addEventListener('toggle', () => {
+        if ($('memDetails').open) loadMemories();
+      });
+
       $('saveBtn').onclick = async () => {
-        setStatus($('settingsStatus'), 'Opslaan…');
+        setStatus($('settingsStatus'), t('saving'));
         try {
           await api('PUT', '/config', {
             provider: providerSel.value,
@@ -305,10 +376,10 @@
           $('openaiApiKey').value = '';
           $('geminiApiKey').value = '';
           $('compatibleApiKey').value = '';
-          setStatus($('settingsStatus'), 'Opgeslagen ✓', 'ok');
+          setStatus($('settingsStatus'), t('saved'), 'ok');
           await loadConfig();
         } catch (e) {
-          setStatus($('settingsStatus'), 'Opslaan mislukt: ' + (e.message || e), 'err');
+          setStatus($('settingsStatus'), t('saveFailed') + (e.message || e), 'err');
         }
       };
 
@@ -316,7 +387,7 @@
         messages = [];
         persistChat();
         $('chat').innerHTML = '';
-        addMessage('system', 'Nieuw gesprek gestart.');
+        addMessage('system', t('newChat'));
       };
 
       async function send() {
@@ -332,7 +403,7 @@
 
         const typing = addMessage('assistant', '…');
         typing.classList.add('typing');
-        setStatus($('chatStatus'), 'FlowMind denkt na en voert acties uit…');
+        setStatus($('chatStatus'), t('thinking'));
 
         try {
           // Use the in-chat AI picker. Only reuse the saved custom model when the
@@ -349,18 +420,19 @@
             model: model,
           });
           typing.remove();
-          const reply = (res && res.reply) || '(geen antwoord)';
+          const reply = (res && res.reply) || t('noReply');
           addMessage('assistant', reply);
           addSteps(res && res.steps);
           messages.push({ role: 'assistant', content: reply });
           persistChat();
           setStatus($('chatStatus'), '', '');
+          if ($('memDetails').open) loadMemories();
         } catch (e) {
           typing.remove();
-          setStatus($('chatStatus'), 'Fout: ' + (e.message || e), 'err');
-          addMessage('system', 'Er ging iets mis: ' + (e.message || e));
-          // Haal de mislukte beurt uit de historie en zet de tekst terug,
-          // zodat opnieuw versturen een schone chatgeschiedenis houdt.
+          setStatus($('chatStatus'), t('errorPrefix') + (e.message || e), 'err');
+          addMessage('system', t('wentWrong') + (e.message || e));
+          // Drop the failed turn from the history and restore the text so
+          // retrying keeps a clean conversation.
           messages.pop();
           persistChat();
           if (!$('input').value) $('input').value = text;
@@ -381,9 +453,9 @@
       loadConfig();
       if (messages.length) {
         messages.forEach((m) => addMessage(m.role, m.content));
-        addMessage('system', 'Vorig gesprek hersteld.');
+        addMessage('system', t('restored'));
       } else {
-        addMessage('system', 'Welkom! Typ gewoon je opdracht — standaard chat je gratis via OpenCode Zen (Big Pickle), zonder key. Andere AI-providers stel je in via Instellingen.');
+        addMessage('system', t('welcome'));
       }
     }
   </script>

@@ -30,6 +30,16 @@ Homey: hij leest je systeem uit, stuurt apparaten aan en bouwt flows — inclusi
 6. **Scripts draaien (optioneel)** — de AI kan korte JavaScript-snippets op je
    Homey uitvoeren (HomeyScript-stijl) voor taken die de andere tools niet
    dekken. Standaard **uit**; je zet het aan met een toggle in de instellingen.
+7. **Geheugen** — de AI onthoudt blijvende feiten en voorkeuren over je huis
+   ("de babykamer moet 19°C blijven", "we slapen om 23:00") over gesprekken
+   heen. Beheren kan in de instellingen of gewoon via de chat ("vergeet dat").
+8. **Flow-kaarten** — twee actionkaarten: *"Laat FlowMind iets doen…"* (voert
+   een opdracht uit) en *"Vraag FlowMind…"* (geeft het antwoord terug als tag,
+   voor Advanced Flows). Zo kunnen je flows zélf de AI aanroepen.
+9. **Insights** — de AI kan historische sensor-/energiedata uitlezen ("hoe warm
+   was het vannacht in de slaapkamer?").
+10. **Tweetalig** — de interface is Engels of Nederlands, automatisch op basis
+    van je Homey-taal.
 
 ## Vereisten
 
@@ -98,11 +108,12 @@ eigen format (Anthropic `tools`, OpenAI `tools[].function`). De uitvoering loopt
 altijd via `HomeyContext.executeTool()`, die netjes een JSON-resultaat teruggeeft
 (of `{ error }`), zodat het model fouten kan lezen en herstellen.
 
-Beschikbare tools (18): `get_system_overview`, `list_devices`, `list_zones`,
+Beschikbare tools (23): `get_system_overview`, `list_devices`, `list_zones`,
 `list_flows`, `get_flow`, `list_moods`, `control_device`, `activate_mood`,
 `start_flow`, `list_flow_cards`, `create_standard_flow`, `create_advanced_flow`,
 `update_standard_flow`, `update_advanced_flow`, `delete_flow`, `list_backups`,
-`restore_backup`, `run_script`.
+`restore_backup`, `run_script`, `save_memory`, `list_memories`, `delete_memory`,
+`list_insights_logs`, `get_insights_entries`.
 
 ### Providers instellen
 
@@ -146,7 +157,7 @@ dit is betrouwbaarder dan gokken.
 Het model mag leesbare card-keys gebruiken (`trigger1`, `cond1`, …); de app zet
 die automatisch om naar geldige UUID's voordat de flow naar Homey gaat.
 
-## Beperkingen (v0.1)
+## Beperkingen (v0.2)
 
 - Dit is een werkende basis voor persoonlijk gebruik. Het genereren van complexe
   Advanced Flows hangt af van hoe goed het gekozen model de exacte card-id's

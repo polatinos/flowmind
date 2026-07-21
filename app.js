@@ -31,6 +31,45 @@ module.exports = class FlowMindApp extends Homey.App {
       // Don't crash the app: surface the problem when the user chats instead.
       this.error('Could not initialise the Homey Web API yet:', err.message);
     }
+    this._registerFlowCards();
+  }
+
+  _registerFlowCards() {
+    // "Have FlowMind do…" — fire-and-check action, no return value needed.
+    this.homey.flow.getActionCard('ai_do').registerRunListener(async (args) => {
+      await this._runFromFlow(args.instruction);
+      return true;
+    });
+    // "Ask FlowMind…" — returns the answer as a token (Advanced Flow).
+    this.homey.flow.getActionCard('ai_ask').registerRunListener(async (args) => {
+      const reply = await this._runFromFlow(args.question);
+      return { response: reply };
+    });
+  }
+
+  /**
+   * Run one assistant turn triggered from a Flow card. Flow run-listeners have
+   * a tight time budget, so use fewer tool steps than the chat does, and mark
+   * the message so the system prompt applies its no-confirmation flow rules.
+   */
+  async _runFromFlow(text) {
+    const instruction = String(text == null ? '' : text).trim();
+    if (!instruction) throw new Error('No instruction provided.');
+    const result = await this.chat({
+      messages: [{ role: 'user', content: `[flow] ${instruction}` }],
+      maxSteps: 6,
+    });
+    return (result && result.reply) || 'Done.';
+  }
+
+  async getMemories() {
+    return this.homeyContext.listMemories();
+  }
+
+  async deleteMemory({ id } = {}) {
+    const result = await this.homeyContext.deleteMemory({ id });
+    if (result && result.error) throw new Error(result.error);
+    return result;
   }
 
   _keyFor(provider) {
@@ -130,6 +169,7 @@ module.exports = class FlowMindApp extends Homey.App {
       apiKey,
       model,
       baseUrl,
+      maxSteps: Number.isInteger(body.maxSteps) && body.maxSteps > 0 ? Math.min(body.maxSteps, 10) : 10,
       messages: messages.map((m) => ({
         role: m.role === 'assistant' ? 'assistant' : 'user',
         content: String(m.content == null ? '' : m.content),
