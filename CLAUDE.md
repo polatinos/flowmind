@@ -99,6 +99,39 @@ lib/
   `get_flow`/`list_flow_cards` opzoeken, nooit gokken (staat ook in de
   systemprompt).
 
+## Eerste test op echte Homey (v0.2.0 — nog NIET gedaan)
+
+Alles hieronder is alleen offline/e2e-tegen-Zen geverifieerd; dit moet nog op
+een echte Homey Pro (zelfde wifi-netwerk vereist, `homey login` eenmalig):
+
+```bash
+npm ci && npx homey app run   # laat draaien; logs verschijnen in de terminal
+```
+
+Checklist, in volgorde (instellingenpagina: Homey-app → FlowMind → Instellingen):
+
+1. **Chat zonder key** — direct een vraag typen ("hoeveel apparaten heb ik?").
+   Verwacht: antwoord via Zen/big-pickle, acties zichtbaar onder het antwoord.
+2. **Device aansturen** — "zet lamp X aan/uit". Check dat het echt gebeurt.
+3. **Geheugen** — "onthoud dat …" → verschijnt in de Geheugen-sectie (count
+   gaat omhoog); "vergeet dat" → weer weg. Nieuw gesprek starten en checken
+   dat de AI het feit nog kent.
+4. **Standaard flow maken** — simpele opdracht; check in de Homey-app.
+5. **Advanced flow maken** — check dat de kaarten goed verbonden zijn.
+   Risico: verkeerde card-id's; de AI hoort eerst een bestaande flow te
+   inspecteren.
+6. **Flow-kaarten** — Advanced Flow met "Vraag FlowMind…"-kaart; check dat
+   het antwoord-token in een volgende kaart bruikbaar is. Risico: flow-
+   timeout bij trage modellen (maxSteps staat op 6 voor flow-runs).
+7. **Insights** — "hoe warm was het vannacht in <zone>?".
+8. **Moods** (indien aanwezig) — "activeer mood X" (`moods.setMood` is nog
+   nooit live getest).
+9. **NL/EN** — controleer dat de settings-pagina in het Nederlands verschijnt
+   (Homey staat op NL).
+
+Bevindingen/fixes: versie bumpen (app.json + package.json), valideren,
+committen; pushen alleen na toestemming.
+
 ## Werkwijze
 
 - Elke wijziging: `npx homey app validate --level publish` moet slagen.
