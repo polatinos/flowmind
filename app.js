@@ -2,7 +2,7 @@
 
 const Homey = require('homey');
 const HomeyContext = require('./lib/HomeyContext');
-const { runAssistant, listProviders } = require('./lib/llm');
+const { runAssistant, listProviders, PROVIDERS } = require('./lib/llm');
 
 const SETTINGS = {
   PROVIDER: 'provider',
@@ -115,7 +115,8 @@ module.exports = class FlowMindApp extends Homey.App {
     if (provider === 'compatible' && !baseUrl) {
       throw new Error('Set a base URL for the OpenAI-compatible provider in the settings first.');
     }
-    if (provider !== 'compatible' && !apiKey) {
+    const providerCfg = PROVIDERS[provider];
+    if (!apiKey && providerCfg && !providerCfg.needsBaseUrl && !providerCfg.keyOptional) {
       throw new Error(
         `No API key set for ${provider}. Open the settings and add your ${provider} API key first.`,
       );

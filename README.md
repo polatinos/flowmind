@@ -39,14 +39,15 @@ Homey: hij leest je systeem uit, stuurt apparaten aan en bouwt flows — inclusi
   npm install -g homey
   homey login
   ```
-- Een API-key van **Anthropic** (https://console.anthropic.com) en/of
-  **OpenAI** (https://platform.openai.com).
+- Géén API-key nodig om te starten: de standaardprovider **OpenCode Zen**
+  (gratis model Big Pickle) werkt direct. Optioneel: een key van **Anthropic**,
+  **OpenAI** of **Google Gemini** voor sterkere modellen.
 
 ## Installeren & draaien
 
 ```bash
-git clone <deze-repo>
-cd Homeyai
+git clone https://github.com/polatinos/flowmind.git
+cd flowmind
 npm install
 homey app run          # installeert de app tijdelijk op je Homey en toont logs
 ```
@@ -107,16 +108,15 @@ Beschikbare tools (18): `get_system_overview`, `list_devices`, `list_zones`,
 
 | Provider | Wat je invult |
 |---|---|
-| **OpenCode Zen (gratis)** ⭐ | Alleen je Zen API-key (opencode.ai/auth). Adres + model (Big Pickle) staan al goed. Standaard geselecteerd. |
+| **OpenCode Zen (gratis)** ⭐ | Niets — werkt direct, zonder key. Adres + model (Big Pickle) staan al goed. Standaard geselecteerd. Eigen key (opencode.ai/auth) is optioneel. |
 | Anthropic (Claude) | Anthropic API-key |
 | OpenAI (GPT) | OpenAI API-key |
 | Google Gemini | Gemini API-key |
 | OpenAI-compatibel | Base URL (bijv. `https://api.groq.com/openai/v1` of `http://<homey-ip>:11434/v1` voor Ollama) + evt. API-key |
 
-**Snelste start:** kies provider *OpenCode Zen*, haal een gratis key op via
-`opencode.ai/auth`, plak die in het Zen-veld, klik Opslaan en begin te chatten.
-Het gratis Big Pickle-model draait via een OpenAI-compatibel endpoint. Let op:
-tijdens de gratis periode kan OpenCode je gespreksdata gebruiken om het model te
+**Snelste start:** gewoon typen — provider *OpenCode Zen* met het gratis
+Big Pickle-model staat standaard geselecteerd en heeft geen key nodig. Let op:
+bij gratis modellen kan OpenCode je gespreksdata gebruiken om modellen te
 verbeteren — wil je dat niet, kies dan een betaalde provider.
 
 ### Back-ups & veiligheid

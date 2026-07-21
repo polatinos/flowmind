@@ -97,9 +97,9 @@
       </div>
       <div style="margin-top: 12px; padding: 12px; border: 1px solid var(--brand); background: var(--brand-soft); border-radius: 10px;">
         <div style="font-weight: 700; font-size: 13px; color: var(--brand); margin-bottom: 2px;">⭐ Makkelijkste optie: OpenCode Zen (gratis)</div>
-        <div class="hint" style="margin: 0 0 8px;">Kies bovenaan de provider <b>OpenCode Zen</b>, plak hieronder je key en klaar. Model en adres worden automatisch ingesteld (Big Pickle). Gratis key ophalen: <b>opencode.ai/auth</b>.</div>
+        <div class="hint" style="margin: 0 0 8px;">Werkt direct, zonder key: provider <b>OpenCode Zen</b> staat al geselecteerd en gebruikt het gratis model <b>Big Pickle</b>. Optioneel kun je een eigen key instellen (<b>opencode.ai/auth</b>), bijv. voor hogere limieten.</div>
         <div class="field">
-          <label for="zenApiKey">OpenCode Zen API-key</label>
+          <label for="zenApiKey">OpenCode Zen API-key (optioneel)</label>
           <input id="zenApiKey" type="password" placeholder="plak je Zen-key…" autocomplete="off" />
         </div>
       </div>
@@ -160,6 +160,12 @@
   <script type="text/javascript" src="/homey.js" data-origin="settings"></script>
   <script type="text/javascript">
     let messages = []; // { role: 'user'|'assistant', content: string }
+    // Keep the conversation across page reloads (the settings page is closed
+    // and reopened often on mobile). Storage failures are harmless.
+    try { messages = JSON.parse(localStorage.getItem('flowmind.chat') || '[]'); } catch (e) {}
+    function persistChat() {
+      try { localStorage.setItem('flowmind.chat', JSON.stringify(messages.slice(-40))); } catch (e) {}
+    }
     let sending = false;
     let currentCfg = null;
     const FREE_PROVIDERS = new Set(['zen']);
@@ -241,8 +247,10 @@
         if (p) modelInput.placeholder = p.defaultModel + ' (of kies een ander model)';
       }
 
-      // A provider is usable if its key (or, for the compatible one, base URL) is set.
+      // A provider is usable if its key (or, for the compatible one, base URL)
+      // is set. Providers with an optional key (OpenCode Zen) always work.
       function isReady(cfg, p) {
+        if (p.keyOptional) return true;
         if (p.needsBaseUrl) return Boolean(cfg.compatibleBaseUrl);
         return Boolean(cfg.keysSet && cfg.keysSet[p.id]);
       }
@@ -306,6 +314,7 @@
 
       $('clearBtn').onclick = () => {
         messages = [];
+        persistChat();
         $('chat').innerHTML = '';
         addMessage('system', 'Nieuw gesprek gestart.');
       };
@@ -319,6 +328,7 @@
         $('input').value = '';
         addMessage('user', text);
         messages.push({ role: 'user', content: text });
+        persistChat();
 
         const typing = addMessage('assistant', '…');
         typing.classList.add('typing');
@@ -343,6 +353,7 @@
           addMessage('assistant', reply);
           addSteps(res && res.steps);
           messages.push({ role: 'assistant', content: reply });
+          persistChat();
           setStatus($('chatStatus'), '', '');
         } catch (e) {
           typing.remove();
@@ -351,6 +362,7 @@
           // Haal de mislukte beurt uit de historie en zet de tekst terug,
           // zodat opnieuw versturen een schone chatgeschiedenis houdt.
           messages.pop();
+          persistChat();
           if (!$('input').value) $('input').value = text;
         } finally {
           sending = false;
@@ -367,7 +379,12 @@
       });
 
       loadConfig();
-      addMessage('system', 'Welkom! Open eerst Instellingen. Makkelijkste start: provider "OpenCode Zen" + je gratis key (opencode.ai/auth). Daarna typ je gewoon je opdracht.');
+      if (messages.length) {
+        messages.forEach((m) => addMessage(m.role, m.content));
+        addMessage('system', 'Vorig gesprek hersteld.');
+      } else {
+        addMessage('system', 'Welkom! Typ gewoon je opdracht — standaard chat je gratis via OpenCode Zen (Big Pickle), zonder key. Andere AI-providers stel je in via Instellingen.');
+      }
     }
   </script>
 </body>

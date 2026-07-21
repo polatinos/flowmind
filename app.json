@@ -34,5 +34,10 @@
   "author": {
     "name": "Tarik Polat",
     "email": "tarik-polat@live.nl"
+  },
+  "source": "https://github.com/polatinos/flowmind",
+  "support": "mailto:tarik-polat@live.nl",
+  "bugs": {
+    "url": "https://github.com/polatinos/flowmind/issues"
   }
 }
