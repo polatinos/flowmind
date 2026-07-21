@@ -20,9 +20,9 @@ const SETTINGS = {
 // is usable out of the box, like the Home Assistant "opencode" add-on.
 const DEFAULT_PROVIDER = 'zen';
 
-module.exports = class HomeyAIApp extends Homey.App {
+module.exports = class FlowMindApp extends Homey.App {
   async onInit() {
-    this.log('HomeyAI is starting…');
+    this.log('FlowMind is starting…');
     this.homeyContext = new HomeyContext(this.homey);
     try {
       await this.homeyContext.init();

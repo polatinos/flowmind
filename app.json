@@ -1,12 +1,12 @@
 {
-  "id": "nl.polatinos.homeyai",
+  "id": "nl.polatinos.flowmind",
   "version": "0.1.0",
   "compatibility": ">=8.1.4",
   "sdk": 3,
   "platforms": ["local"],
   "name": {
-    "en": "HomeyAI",
-    "nl": "HomeyAI"
+    "en": "FlowMind",
+    "nl": "FlowMind"
   },
   "description": {
     "en": "An AI assistant that runs on your Homey Pro. Chat in plain language and it reads your system, controls devices and builds (advanced) flows for you.",

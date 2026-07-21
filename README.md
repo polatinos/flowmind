@@ -1,4 +1,4 @@
-# HomeyAI
+# FlowMind
 
 Een AI-assistent die **op je eigen Homey Pro draait**. Je opent de app-instellingen,
 typt in gewone taal een vraag of opdracht, en de AI voert die echt uit op je
@@ -56,7 +56,7 @@ permanent installeren, gebruik dan `homey app install`.
 
 ## Gebruiken
 
-1. Open in de Homey-app (of via https://my.homey.app) de app **HomeyAI** →
+1. Open in de Homey-app (of via https://my.homey.app) de app **FlowMind** →
    **Instellingen**.
 2. Klap **Instellingen (AI-provider & API-keys)** open, kies je provider, plak je
    API-key en klik **Opslaan**. Keys worden versleuteld op je Homey opgeslagen en

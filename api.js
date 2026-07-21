@@ -3,7 +3,7 @@
 /**
  * Web API endpoints for the app settings page (chat UI).
  * Route names/paths are declared in app.json under "api"; the handlers here
- * must match those names. `homey.app` is the HomeyAIApp instance from app.js.
+ * must match those names. `homey.app` is the FlowMindApp instance from app.js.
  */
 module.exports = {
   async getConfig({ homey }) {

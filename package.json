@@ -1,7 +1,7 @@
 {
-  "name": "nl.polatinos.homeyai",
+  "name": "nl.polatinos.flowmind",
   "version": "0.1.0",
-  "description": "HomeyAI — een AI-assistent die op je Homey Pro draait met een chat in de app-instellingen.",
+  "description": "FlowMind — een AI-assistent die op je Homey Pro draait met een chat in de app-instellingen.",
   "main": "app.js",
   "license": "MIT",
   "author": "Tarik Polat <tarik-polat@live.nl>",

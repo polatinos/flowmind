@@ -4,7 +4,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Project Overview
 
-HomeyAI — project repository. (Vul hier de projectbeschrijving aan zodra de
+FlowMind — project repository. (Vul hier de projectbeschrijving aan zodra de
 eerste code is toegevoegd.)
 
 ## Claude Code Integration
