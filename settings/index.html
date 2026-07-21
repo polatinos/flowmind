@@ -207,6 +207,9 @@
           <input id="webTerminalEnabled" type="checkbox" style="width:auto;" />
           <span data-i18n="settings.webTermToggle">Enable web terminal</span>
         </label>
+        <div class="row" style="margin-top: 10px;">
+          <button id="webTermOpenBtn" type="button" style="display:none;" data-i18n="settings.webTermOpenBtn">Open web terminal</button>
+        </div>
         <div id="webTermLink" class="hint" style="margin-top: 8px;"></div>
       </div>
       <div class="row" style="margin-top: 12px;">
@@ -424,26 +427,25 @@
         }
       }
 
-      // Web terminal: toggle plus a ready-to-open link once it is running.
-      // The link is built from config data (never user text), so the anchor
-      // element is created with DOM methods only.
+      // Web terminal: toggle plus an open button once it is running. A plain
+      // <a target="_blank"> does not open from inside the Homey settings
+      // webview, so the button goes through Homey.openURL instead.
       function updateWebTerminal(wt) {
         $('webTerminalEnabled').checked = Boolean(wt.enabled);
         const box = $('webTermLink');
+        const btn = $('webTermOpenBtn');
         box.textContent = '';
         if (wt.error) {
+          btn.style.display = 'none';
           box.textContent = t('webTermError') + wt.error;
           return;
         }
         if (wt.enabled && wt.url) {
-          const a = document.createElement('a');
-          a.href = wt.url;
-          a.target = '_blank';
-          a.rel = 'noopener';
-          a.style.color = 'var(--brand)';
-          a.textContent = wt.url.replace(/\?token=.*$/, '');
-          box.appendChild(document.createTextNode(t('webTermOpen') + ' '));
-          box.appendChild(a);
+          btn.style.display = '';
+          btn.onclick = () => Homey.openURL(wt.url);
+          box.textContent = t('webTermAfterHint') + wt.url.replace(/\?token=.*$/, '');
+        } else {
+          btn.style.display = 'none';
         }
       }
 
