@@ -348,6 +348,10 @@
           typing.remove();
           setStatus($('chatStatus'), 'Fout: ' + (e.message || e), 'err');
           addMessage('system', 'Er ging iets mis: ' + (e.message || e));
+          // Haal de mislukte beurt uit de historie en zet de tekst terug,
+          // zodat opnieuw versturen een schone chatgeschiedenis houdt.
+          messages.pop();
+          if (!$('input').value) $('input').value = text;
         } finally {
           sending = false;
           $('sendBtn').disabled = false;
