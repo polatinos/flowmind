@@ -233,9 +233,25 @@ v0.4.0 — terminal-UI + attitude:
   `control_device`-beschrijving eist nu expliciet ID's uit een tool-result
   van dít gesprek. Overweeg later hetzelfde voor andere id-parameters.
 
-**Volgende stappen:** minimale scopes bepalen met een smallere sleutel;
-tests 3, 6, 7 en 8 draaien. Kwaliteitslat: het niveau van Magnus'
-Home Assistant-werk vóór er over de App Store wordt nagedacht.
+Nachttest 2026-07-22 (v0.5.3/0.5.4, via de webterminal):
+- Test 3 (geheugen over gesprekken) ✅. `/help`, `/memories`, token-403 ✅.
+- **Incident:** model verzon een device-UUID in advanced-flow-kaarten;
+  Homey slaat zo'n flow gewoon op (kaarten "niet beschikbaar") en hij doet
+  stil niets — waarna het model "Gedaan" meldde. Fix v0.5.4:
+  `_assertDeviceCardsExist` weigert onbekende device-ids bij elke flow
+  create/update; prompt: ids alleen uit tool-results van dít gesprek +
+  "verifieer vóór je succes claimt". Retry daarna werkte bewijsbaar
+  (Insights: neon uit 23:13:27Z, aan 23:13:49Z — 21s).
+- v0.5.3: vertraagde acties → tijdelijke flow met delay (nooit run_script
+  als eerste greep), zonder overbodige bevestigingsvraag, en opruimen na
+  afloop.
+- Nog te verbeteren: bij zo'n tijdelijke actie expliciet melden "was 20s
+  uit, staat nu weer aan" zodat de gebruiker niet twijfelt.
+
+**Volgende stappen:** uitbundige testronde + security-review (Tarik's
+expliciete agenda vóór indiening bij Athom); minimale scopes bepalen met
+een smallere sleutel; tests 6, 7 en 8 draaien. Kwaliteitslat: het niveau
+van Magnus' Home Assistant-werk vóór er over de App Store wordt nagedacht.
 
 Bevindingen/fixes: versie bumpen (app.json + package.json), valideren,
 committen; pushen alleen na toestemming.
