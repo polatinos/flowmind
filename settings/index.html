@@ -200,6 +200,15 @@
           <button id="homeyKeyRemoveBtn" class="danger" type="button" style="display:none;" data-i18n="settings.homeyKeyRemove">Remove key</button>
         </div>
       </div>
+      <div style="margin-top: 12px; padding: 12px; border: 1px solid var(--border); border-radius: 10px;">
+        <div style="font-weight: 700; font-size: 13px; margin-bottom: 2px;" data-i18n="settings.webTermTitle">🖥 Web terminal (desktop)</div>
+        <div class="hint" style="margin: 0 0 8px;" data-i18n="settings.webTermHint">Full-screen terminal for desktop browsers, served by the app on your own network. Only reachable at home (LAN) and protected with an access token; API keys are never exposed on it.</div>
+        <label style="display:flex; align-items:center; gap:8px; font-size:13px; color:var(--text); font-weight:600; cursor:pointer;">
+          <input id="webTerminalEnabled" type="checkbox" style="width:auto;" />
+          <span data-i18n="settings.webTermToggle">Enable web terminal</span>
+        </label>
+        <div id="webTermLink" class="hint" style="margin-top: 8px;"></div>
+      </div>
       <div class="row" style="margin-top: 12px;">
         <button id="saveBtn" data-i18n="settings.save">Save</button>
         <button id="clearBtn" class="secondary" type="button" data-i18n="settings.clearChat">Clear conversation</button>
@@ -405,12 +414,36 @@
           $('enableCodeExecution').checked = Boolean(cfg.enableCodeExecution);
           updateHomeyKeyStatus(cfg.homeyApi || {});
           updateConnStatus(cfg.homeyApi || {});
+          updateWebTerminal(cfg.webTerminal || {});
           updateModelPlaceholder(cfg);
           providerSel.onchange = () => updateModelPlaceholder(cfg);
           currentCfg = cfg;
           populateChatProvider(cfg);
         } catch (e) {
           setStatus($('settingsStatus'), t('configFailed') + (e.message || e), 'err');
+        }
+      }
+
+      // Web terminal: toggle plus a ready-to-open link once it is running.
+      // The link is built from config data (never user text), so the anchor
+      // element is created with DOM methods only.
+      function updateWebTerminal(wt) {
+        $('webTerminalEnabled').checked = Boolean(wt.enabled);
+        const box = $('webTermLink');
+        box.textContent = '';
+        if (wt.error) {
+          box.textContent = t('webTermError') + wt.error;
+          return;
+        }
+        if (wt.enabled && wt.url) {
+          const a = document.createElement('a');
+          a.href = wt.url;
+          a.target = '_blank';
+          a.rel = 'noopener';
+          a.style.color = 'var(--brand)';
+          a.textContent = wt.url.replace(/\?token=.*$/, '');
+          box.appendChild(document.createTextNode(t('webTermOpen') + ' '));
+          box.appendChild(a);
         }
       }
 
@@ -572,6 +605,7 @@
             compatibleBaseUrl: $('compatibleBaseUrl').value.trim(),
             enableCodeExecution: $('enableCodeExecution').checked,
             homeyApiKey: $('homeyApiKey').value,
+            webTerminalEnabled: $('webTerminalEnabled').checked,
           });
           $('zenApiKey').value = '';
           $('anthropicApiKey').value = '';

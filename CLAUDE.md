@@ -43,6 +43,7 @@ api.js                 Web-API handlers (/config, /chat, /memories)
 settings/index.html    Chat-UI + instellingen (i18n via data-i18n + Homey.__)
 locales/en.json, nl.json  Alle UI-teksten (EN = basis, NL = vertaling)
 lib/
+  webTerminal.js       LAN-webserver (poort 8737): fullscreen desktop-terminal + eigen page-HTML
   HomeyContext.js      Homey Web API wrapper + ALLE tool-uitvoering + memory/backups
   tools.js             Provider-neutrale tooldefinities (23 tools)
   flowNormalize.js     Leesbare card-keys → UUID's voor advanced flows
@@ -118,6 +119,25 @@ lib/
 - Minimale scopes nog onbekend — getest met een full-access sleutel.
   Verwachting (nog verifiëren met een smallere sleutel): `homey.flow` +
   `homey.device` + `homey.zone` + `homey.insights` + `homey.mood`.
+
+### Desktop: settings-modal is ~330px → eigen webterminal (v0.5.0)
+- my.homey.app toont app-settings op desktop in een vaste smalle modal
+  (±330px, cross-origin iframe) — daar is niets aan te doen vanuit de app.
+  Op mobiel is dezelfde pagina fullscreen en prima.
+- **Oplossing (het Magnus/HA-model, live getest):** de app draait zelf een
+  http-server op poort **8737** (`lib/webTerminal.js`, Node `http`, bind
+  0.0.0.0 — een Homey-app MAG een LAN-poort openen, bevestigd op de Homey
+  Pro 2023). Fullscreen terminal op `http://<homey-ip>:8737/?token=…`.
+- Beveiliging: random token (crypto, in settings `webTerminalToken`),
+  timingSafeEqual-check, 403 zonder token; token wordt na laden uit de URL
+  gepoetst (history.replaceState) en zit daarna in localStorage. Er gaan
+  géén API-keys over deze poort — settings blijven in de Homey-modal.
+- Live stappen gaan hier via **polling**: `getChatJob` geeft bij `pending`
+  ook `steps` terug (gebufferd op de job, cap 100). De settings-pagina
+  gebruikt realtime `chatStep`-events; de webpagina kan dat niet.
+- Toggle + kant-en-klare link staan in de settings-pagina
+  (`webTerminalEnabled`); de pagina-HTML zit als template-string in
+  webTerminal.js met eigen embedded EN/NL-strings (buiten de locales om).
 
 ### De instellingenpagina kapt requests af na 10 seconden
 - Een `Homey.api()`-call vanuit de settings-pagina wordt door de Homey-app na

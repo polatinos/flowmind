@@ -3,6 +3,7 @@
 const Homey = require('homey');
 const HomeyContext = require('./lib/HomeyContext');
 const { runAssistant, listProviders, PROVIDERS } = require('./lib/llm');
+const { WebTerminal, PORT: WEB_TERMINAL_PORT } = require('./lib/webTerminal');
 
 const SETTINGS = {
   PROVIDER: 'provider',
@@ -15,6 +16,7 @@ const SETTINGS = {
   COMPATIBLE_BASE_URL: 'compatibleBaseUrl',
   ENABLE_CODE: 'enableCodeExecution',
   HOMEY_KEY: 'homeyApiKey',
+  WEB_TERMINAL: 'webTerminalEnabled',
 };
 
 // The free, one-key OpenCode Zen (Big Pickle) option is the default so the app
@@ -41,6 +43,17 @@ module.exports = class FlowMindApp extends Homey.App {
       this.error('Could not initialise the Homey Web API yet:', err.message);
     }
     this._registerFlowCards();
+
+    // Desktop web terminal on the LAN (Homey's settings modal is ~330px wide
+    // on desktop, which is unusable for a chat terminal).
+    this._webTerminal = new WebTerminal(this);
+    if (this.homey.settings.get(SETTINGS.WEB_TERMINAL)) {
+      this._webTerminal.start();
+    }
+  }
+
+  async onUninit() {
+    if (this._webTerminal) this._webTerminal.stop();
   }
 
   _registerFlowCards() {
@@ -112,6 +125,27 @@ module.exports = class FlowMindApp extends Homey.App {
       },
       // Local Homey API key status: flows can only be created in 'local' mode.
       homeyApi: this.homeyContext.getApiStatus(),
+      webTerminal: await this._webTerminalStatus(),
+    };
+  }
+
+  /** Status + ready-to-open URL for the desktop web terminal. */
+  async _webTerminalStatus() {
+    const enabled = Boolean(this.homey.settings.get(SETTINGS.WEB_TERMINAL));
+    let url = null;
+    if (enabled && this._webTerminal) {
+      try {
+        const address = await this.homey.cloud.getLocalAddress();
+        const host = String(address).replace(/^https?:\/\//, '').replace(/:\d+$/, '');
+        url = `http://${host}:${WEB_TERMINAL_PORT}/?token=${this._webTerminal.ensureToken()}`;
+      } catch (err) {
+        this.error('Could not determine the local address for the web terminal:', err.message);
+      }
+    }
+    return {
+      enabled,
+      url,
+      error: this._webTerminal ? this._webTerminal.lastError : null,
     };
   }
 
@@ -131,6 +165,11 @@ module.exports = class FlowMindApp extends Homey.App {
     }
     if (typeof body.enableCodeExecution === 'boolean') {
       this.homey.settings.set(SETTINGS.ENABLE_CODE, body.enableCodeExecution);
+    }
+    if (typeof body.webTerminalEnabled === 'boolean') {
+      this.homey.settings.set(SETTINGS.WEB_TERMINAL, body.webTerminalEnabled);
+      if (body.webTerminalEnabled) this._webTerminal.start();
+      else this._webTerminal.stop();
     }
     const keyFields = {
       zenApiKey: SETTINGS.ZEN_KEY,
@@ -187,12 +226,16 @@ module.exports = class FlowMindApp extends Homey.App {
     this._pruneChatJobs();
 
     const jobId = `${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 10)}`;
-    const job = { id: jobId, status: 'pending', createdAt: Date.now(), result: null, error: null };
+    const job = {
+      id: jobId, status: 'pending', createdAt: Date.now(), result: null, error: null, steps: [],
+    };
     this._chatJobs.set(jobId, job);
 
-    // Stream tool-step progress to the settings page so its terminal can show
-    // a live action log while the turn runs.
+    // Stream tool-step progress: realtime for the settings page, and buffered
+    // on the job for the web terminal, which polls instead. Capped so a
+    // runaway turn cannot grow the job unbounded.
     const onStep = (step) => {
+      if (job.steps.length < 100) job.steps.push(step);
       try {
         this.homey.api.realtime('chatStep', { jobId, ...step });
       } catch (err) { /* page may be closed; harmless */ }
@@ -230,7 +273,7 @@ module.exports = class FlowMindApp extends Homey.App {
     if (!job) return { status: 'unknown' };
     if (job.status === 'error') return { status: 'error', error: job.error };
     if (job.status === 'done') return { status: 'done', result: job.result };
-    return { status: 'pending' };
+    return { status: 'pending', steps: job.steps || [] };
   }
 
   /**
