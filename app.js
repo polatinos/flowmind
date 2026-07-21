@@ -7,6 +7,7 @@ const { runAssistant, listProviders } = require('./lib/llm');
 const SETTINGS = {
   PROVIDER: 'provider',
   MODEL: 'model',
+  ZEN_KEY: 'zenApiKey',
   ANTHROPIC_KEY: 'anthropicApiKey',
   OPENAI_KEY: 'openaiApiKey',
   GEMINI_KEY: 'geminiApiKey',
@@ -14,6 +15,10 @@ const SETTINGS = {
   COMPATIBLE_BASE_URL: 'compatibleBaseUrl',
   ENABLE_CODE: 'enableCodeExecution',
 };
+
+// The free, one-key OpenCode Zen (Big Pickle) option is the default so the app
+// is usable out of the box, like the Home Assistant "opencode" add-on.
+const DEFAULT_PROVIDER = 'zen';
 
 module.exports = class HomeyAIApp extends Homey.App {
   async onInit() {
@@ -29,6 +34,7 @@ module.exports = class HomeyAIApp extends Homey.App {
   }
 
   _keyFor(provider) {
+    if (provider === 'zen') return this.homey.settings.get(SETTINGS.ZEN_KEY);
     if (provider === 'anthropic') return this.homey.settings.get(SETTINGS.ANTHROPIC_KEY);
     if (provider === 'openai') return this.homey.settings.get(SETTINGS.OPENAI_KEY);
     if (provider === 'gemini') return this.homey.settings.get(SETTINGS.GEMINI_KEY);
@@ -41,7 +47,7 @@ module.exports = class HomeyAIApp extends Homey.App {
    * sent back to the client — only whether each one is present.
    */
   async getConfig() {
-    const provider = this.homey.settings.get(SETTINGS.PROVIDER) || 'anthropic';
+    const provider = this.homey.settings.get(SETTINGS.PROVIDER) || DEFAULT_PROVIDER;
     const model = this.homey.settings.get(SETTINGS.MODEL) || '';
     return {
       provider,
@@ -50,6 +56,7 @@ module.exports = class HomeyAIApp extends Homey.App {
       compatibleBaseUrl: this.homey.settings.get(SETTINGS.COMPATIBLE_BASE_URL) || '',
       enableCodeExecution: Boolean(this.homey.settings.get(SETTINGS.ENABLE_CODE)),
       keysSet: {
+        zen: Boolean(this.homey.settings.get(SETTINGS.ZEN_KEY)),
         anthropic: Boolean(this.homey.settings.get(SETTINGS.ANTHROPIC_KEY)),
         openai: Boolean(this.homey.settings.get(SETTINGS.OPENAI_KEY)),
         gemini: Boolean(this.homey.settings.get(SETTINGS.GEMINI_KEY)),
@@ -76,6 +83,7 @@ module.exports = class HomeyAIApp extends Homey.App {
       this.homey.settings.set(SETTINGS.ENABLE_CODE, body.enableCodeExecution);
     }
     const keyFields = {
+      zenApiKey: SETTINGS.ZEN_KEY,
       anthropicApiKey: SETTINGS.ANTHROPIC_KEY,
       openaiApiKey: SETTINGS.OPENAI_KEY,
       geminiApiKey: SETTINGS.GEMINI_KEY,
@@ -98,7 +106,7 @@ module.exports = class HomeyAIApp extends Homey.App {
     const messages = Array.isArray(body.messages) ? body.messages : [];
     if (!messages.length) throw new Error('No messages provided.');
 
-    const provider = body.provider || this.homey.settings.get(SETTINGS.PROVIDER) || 'anthropic';
+    const provider = body.provider || this.homey.settings.get(SETTINGS.PROVIDER) || DEFAULT_PROVIDER;
     const model = body.model || this.homey.settings.get(SETTINGS.MODEL) || '';
     const apiKey = this._keyFor(provider);
     const baseUrl =

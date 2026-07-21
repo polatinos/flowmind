@@ -107,10 +107,17 @@ Beschikbare tools (18): `get_system_overview`, `list_devices`, `list_zones`,
 
 | Provider | Wat je invult |
 |---|---|
+| **OpenCode Zen (gratis)** ⭐ | Alleen je Zen API-key (opencode.ai/auth). Adres + model (Big Pickle) staan al goed. Standaard geselecteerd. |
 | Anthropic (Claude) | Anthropic API-key |
 | OpenAI (GPT) | OpenAI API-key |
 | Google Gemini | Gemini API-key |
 | OpenAI-compatibel | Base URL (bijv. `https://api.groq.com/openai/v1` of `http://<homey-ip>:11434/v1` voor Ollama) + evt. API-key |
+
+**Snelste start:** kies provider *OpenCode Zen*, haal een gratis key op via
+`opencode.ai/auth`, plak die in het Zen-veld, klik Opslaan en begin te chatten.
+Het gratis Big Pickle-model draait via een OpenAI-compatibel endpoint. Let op:
+tijdens de gratis periode kan OpenCode je gespreksdata gebruiken om het model te
+verbeteren — wil je dat niet, kies dan een betaalde provider.
 
 ### Back-ups & veiligheid
 

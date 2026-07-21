@@ -91,6 +91,14 @@
           <input id="model" type="text" placeholder="standaardmodel" />
         </div>
       </div>
+      <div style="margin-top: 12px; padding: 12px; border: 1px solid var(--brand); background: var(--brand-soft); border-radius: 10px;">
+        <div style="font-weight: 700; font-size: 13px; color: var(--brand); margin-bottom: 2px;">⭐ Makkelijkste optie: OpenCode Zen (gratis)</div>
+        <div class="hint" style="margin: 0 0 8px;">Kies bovenaan de provider <b>OpenCode Zen</b>, plak hieronder je key en klaar. Model en adres worden automatisch ingesteld (Big Pickle). Gratis key ophalen: <b>opencode.ai/auth</b>.</div>
+        <div class="field">
+          <label for="zenApiKey">OpenCode Zen API-key</label>
+          <input id="zenApiKey" type="password" placeholder="plak je Zen-key…" autocomplete="off" />
+        </div>
+      </div>
       <div class="row" style="margin-top: 10px;">
         <div class="field">
           <label for="anthropicApiKey">Anthropic API-key</label>
@@ -226,6 +234,7 @@
           await api('PUT', '/config', {
             provider: providerSel.value,
             model: modelInput.value.trim(),
+            zenApiKey: $('zenApiKey').value,
             anthropicApiKey: $('anthropicApiKey').value,
             openaiApiKey: $('openaiApiKey').value,
             geminiApiKey: $('geminiApiKey').value,
@@ -233,6 +242,7 @@
             compatibleBaseUrl: $('compatibleBaseUrl').value.trim(),
             enableCodeExecution: $('enableCodeExecution').checked,
           });
+          $('zenApiKey').value = '';
           $('anthropicApiKey').value = '';
           $('openaiApiKey').value = '';
           $('geminiApiKey').value = '';
@@ -295,7 +305,7 @@
       });
 
       loadConfig();
-      addMessage('system', 'Welkom! Stel een vraag of geef een opdracht. Vul eerst je API-key in via Instellingen.');
+      addMessage('system', 'Welkom! Open eerst Instellingen. Makkelijkste start: provider "OpenCode Zen" + je gratis key (opencode.ai/auth). Daarna typ je gewoon je opdracht.');
     }
   </script>
 </body>
