@@ -9,6 +9,10 @@ const SETTINGS = {
   MODEL: 'model',
   ANTHROPIC_KEY: 'anthropicApiKey',
   OPENAI_KEY: 'openaiApiKey',
+  GEMINI_KEY: 'geminiApiKey',
+  COMPATIBLE_KEY: 'compatibleApiKey',
+  COMPATIBLE_BASE_URL: 'compatibleBaseUrl',
+  ENABLE_CODE: 'enableCodeExecution',
 };
 
 module.exports = class HomeyAIApp extends Homey.App {
@@ -27,6 +31,8 @@ module.exports = class HomeyAIApp extends Homey.App {
   _keyFor(provider) {
     if (provider === 'anthropic') return this.homey.settings.get(SETTINGS.ANTHROPIC_KEY);
     if (provider === 'openai') return this.homey.settings.get(SETTINGS.OPENAI_KEY);
+    if (provider === 'gemini') return this.homey.settings.get(SETTINGS.GEMINI_KEY);
+    if (provider === 'compatible') return this.homey.settings.get(SETTINGS.COMPATIBLE_KEY);
     return null;
   }
 
@@ -41,9 +47,13 @@ module.exports = class HomeyAIApp extends Homey.App {
       provider,
       model,
       providers: listProviders(),
+      compatibleBaseUrl: this.homey.settings.get(SETTINGS.COMPATIBLE_BASE_URL) || '',
+      enableCodeExecution: Boolean(this.homey.settings.get(SETTINGS.ENABLE_CODE)),
       keysSet: {
         anthropic: Boolean(this.homey.settings.get(SETTINGS.ANTHROPIC_KEY)),
         openai: Boolean(this.homey.settings.get(SETTINGS.OPENAI_KEY)),
+        gemini: Boolean(this.homey.settings.get(SETTINGS.GEMINI_KEY)),
+        compatible: Boolean(this.homey.settings.get(SETTINGS.COMPATIBLE_KEY)),
       },
     };
   }
@@ -59,11 +69,22 @@ module.exports = class HomeyAIApp extends Homey.App {
     if (typeof body.model === 'string') {
       this.homey.settings.set(SETTINGS.MODEL, body.model);
     }
-    if (typeof body.anthropicApiKey === 'string' && body.anthropicApiKey.trim()) {
-      this.homey.settings.set(SETTINGS.ANTHROPIC_KEY, body.anthropicApiKey.trim());
+    if (typeof body.compatibleBaseUrl === 'string') {
+      this.homey.settings.set(SETTINGS.COMPATIBLE_BASE_URL, body.compatibleBaseUrl.trim());
     }
-    if (typeof body.openaiApiKey === 'string' && body.openaiApiKey.trim()) {
-      this.homey.settings.set(SETTINGS.OPENAI_KEY, body.openaiApiKey.trim());
+    if (typeof body.enableCodeExecution === 'boolean') {
+      this.homey.settings.set(SETTINGS.ENABLE_CODE, body.enableCodeExecution);
+    }
+    const keyFields = {
+      anthropicApiKey: SETTINGS.ANTHROPIC_KEY,
+      openaiApiKey: SETTINGS.OPENAI_KEY,
+      geminiApiKey: SETTINGS.GEMINI_KEY,
+      compatibleApiKey: SETTINGS.COMPATIBLE_KEY,
+    };
+    for (const [field, key] of Object.entries(keyFields)) {
+      if (typeof body[field] === 'string' && body[field].trim()) {
+        this.homey.settings.set(key, body[field].trim());
+      }
     }
     return this.getConfig();
   }
@@ -80,7 +101,13 @@ module.exports = class HomeyAIApp extends Homey.App {
     const provider = body.provider || this.homey.settings.get(SETTINGS.PROVIDER) || 'anthropic';
     const model = body.model || this.homey.settings.get(SETTINGS.MODEL) || '';
     const apiKey = this._keyFor(provider);
-    if (!apiKey) {
+    const baseUrl =
+      provider === 'compatible' ? this.homey.settings.get(SETTINGS.COMPATIBLE_BASE_URL) || '' : undefined;
+
+    if (provider === 'compatible' && !baseUrl) {
+      throw new Error('Set a base URL for the OpenAI-compatible provider in the settings first.');
+    }
+    if (provider !== 'compatible' && !apiKey) {
       throw new Error(
         `No API key set for ${provider}. Open the settings and add your ${provider} API key first.`,
       );
@@ -93,6 +120,7 @@ module.exports = class HomeyAIApp extends Homey.App {
       provider,
       apiKey,
       model,
+      baseUrl,
       messages: messages.map((m) => ({
         role: m.role === 'assistant' ? 'assistant' : 'user',
         content: String(m.content == null ? '' : m.content),

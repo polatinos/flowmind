@@ -18,10 +18,18 @@ Homey: hij leest je systeem uit, stuurt apparaten aan en bouwt flows — inclusi
    Zo weet de AI wat er al is voordat hij iets voorstelt of aanmaakt.
 3. **Devices aansturen** — capabilities zoals `onoff`, `dim`,
    `target_temperature`, kleur, volume, enz.
-4. **Meerdere LLM's** — kies zelf je AI-provider. **Anthropic (Claude)** en
-   **OpenAI (GPT)** worden ondersteund, elk met een eigen API-key in de
-   instellingen. Het verschil in function-calling tussen de providers wordt
-   intern genormaliseerd, dus dezelfde tools werken bij beide.
+4. **Meerdere LLM's** — kies zelf je AI-provider: **Anthropic (Claude)**,
+   **OpenAI (GPT)**, **Google Gemini** en elke **OpenAI-compatibele** server
+   (Ollama, Groq, LM Studio, of Gemini via Google's OpenAI-endpoint) met een
+   instelbare Base URL. Elk met een eigen API-key. Het verschil in
+   function-calling tussen de providers wordt intern genormaliseerd, dus
+   dezelfde tools werken overal.
+5. **Flows bewerken & verwijderen** — naast aanmaken kan de AI bestaande flows
+   wijzigen en verwijderen. Vóór elke wijziging/verwijdering wordt automatisch
+   een JSON-back-up gemaakt; je kunt back-ups opvragen en terugzetten.
+6. **Scripts draaien (optioneel)** — de AI kan korte JavaScript-snippets op je
+   Homey uitvoeren (HomeyScript-stijl) voor taken die de andere tools niet
+   dekken. Standaard **uit**; je zet het aan met een toggle in de instellingen.
 
 ## Vereisten
 
@@ -89,9 +97,34 @@ eigen format (Anthropic `tools`, OpenAI `tools[].function`). De uitvoering loopt
 altijd via `HomeyContext.executeTool()`, die netjes een JSON-resultaat teruggeeft
 (of `{ error }`), zodat het model fouten kan lezen en herstellen.
 
-Beschikbare tools: `get_system_overview`, `list_devices`, `list_zones`,
+Beschikbare tools (18): `get_system_overview`, `list_devices`, `list_zones`,
 `list_flows`, `get_flow`, `list_moods`, `control_device`, `activate_mood`,
-`start_flow`, `list_flow_cards`, `create_standard_flow`, `create_advanced_flow`.
+`start_flow`, `list_flow_cards`, `create_standard_flow`, `create_advanced_flow`,
+`update_standard_flow`, `update_advanced_flow`, `delete_flow`, `list_backups`,
+`restore_backup`, `run_script`.
+
+### Providers instellen
+
+| Provider | Wat je invult |
+|---|---|
+| Anthropic (Claude) | Anthropic API-key |
+| OpenAI (GPT) | OpenAI API-key |
+| Google Gemini | Gemini API-key |
+| OpenAI-compatibel | Base URL (bijv. `https://api.groq.com/openai/v1` of `http://<homey-ip>:11434/v1` voor Ollama) + evt. API-key |
+
+### Back-ups & veiligheid
+
+Elke `update_*` of `delete_flow` maakt eerst een JSON-back-up van de flow
+(bewaard in de app-instellingen, laatste 30). De AI vraagt bovendien om
+bevestiging vóór ingrijpende acties. Terugzetten kan met `restore_backup`.
+
+### Scripts (code-uitvoering)
+
+De tool `run_script` voert JavaScript uit op je Homey met toegang tot de
+Homey-API (`homeyApi`) en `console.log`, met een timeout van 10s. Dit staat
+**standaard uit** en moet je expliciet aanzetten via de toggle *"Scripts
+uitvoeren toestaan"* in de instellingen — schakel het alleen in als je begrijpt
+dat de AI dan code met systeemtoegang kan draaien.
 
 ### Advanced Flows
 
