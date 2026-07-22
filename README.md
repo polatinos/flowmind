@@ -27,19 +27,16 @@ Homey: hij leest je systeem uit, stuurt apparaten aan en bouwt flows — inclusi
 5. **Flows bewerken & verwijderen** — naast aanmaken kan de AI bestaande flows
    wijzigen en verwijderen. Vóór elke wijziging/verwijdering wordt automatisch
    een JSON-back-up gemaakt; je kunt back-ups opvragen en terugzetten.
-6. **Scripts draaien (optioneel)** — de AI kan korte JavaScript-snippets op je
-   Homey uitvoeren (HomeyScript-stijl) voor taken die de andere tools niet
-   dekken. Standaard **uit**; je zet het aan met een toggle in de instellingen.
-7. **Geheugen** — de AI onthoudt blijvende feiten en voorkeuren over je huis
+6. **Geheugen** — de AI onthoudt blijvende feiten en voorkeuren over je huis
    ("de babykamer moet 19°C blijven", "we slapen om 23:00") over gesprekken
    heen. Beheren kan in de instellingen of gewoon via de chat ("vergeet dat").
-8. **Flow-kaarten** — twee actionkaarten: *"Laat FlowMind iets doen…"* (voert
+7. **Flow-kaarten** — twee actionkaarten: *"Laat FlowMind iets doen…"* (voert
    een opdracht uit) en *"Vraag FlowMind…"* (geeft het antwoord terug als tag,
    voor Advanced Flows). Zo kunnen je flows zélf de AI aanroepen.
-9. **Insights** — de AI kan historische sensor-/energiedata uitlezen ("hoe warm
+8. **Insights** — de AI kan historische sensor-/energiedata uitlezen ("hoe warm
    was het vannacht in de slaapkamer?").
-10. **Tweetalig** — de interface is Engels of Nederlands, automatisch op basis
-    van je Homey-taal.
+9. **Tweetalig** — de interface is Engels of Nederlands, automatisch op basis
+   van je Homey-taal.
 
 ## Vereisten
 
@@ -110,9 +107,10 @@ altijd via `HomeyContext.executeTool()`, die netjes een JSON-resultaat teruggeef
 
 Beschikbare tools (23): `get_system_overview`, `list_devices`, `list_zones`,
 `list_flows`, `get_flow`, `list_moods`, `control_device`, `activate_mood`,
-`start_flow`, `list_flow_cards`, `create_standard_flow`, `create_advanced_flow`,
+`start_flow`, `list_flow_cards`, `search_flow_card_autocomplete`,
+`create_standard_flow`, `create_advanced_flow`,
 `update_standard_flow`, `update_advanced_flow`, `delete_flow`, `list_backups`,
-`restore_backup`, `run_script`, `save_memory`, `list_memories`, `delete_memory`,
+`restore_backup`, `save_memory`, `list_memories`, `delete_memory`,
 `list_insights_logs`, `get_insights_entries`.
 
 ### Providers instellen
@@ -136,13 +134,15 @@ Elke `update_*` of `delete_flow` maakt eerst een JSON-back-up van de flow
 (bewaard in de app-instellingen, laatste 30). De AI vraagt bovendien om
 bevestiging vóór ingrijpende acties. Terugzetten kan met `restore_backup`.
 
-### Scripts (code-uitvoering)
+### Geen code-uitvoering
 
-De tool `run_script` voert JavaScript uit op je Homey met toegang tot de
-Homey-API (`homeyApi`) en `console.log`, met een timeout van 10s. Dit staat
-**standaard uit** en moet je expliciet aanzetten via de toggle *"Scripts
-uitvoeren toestaan"* in de instellingen — schakel het alleen in als je begrijpt
-dat de AI dan code met systeemtoegang kan draaien.
+FlowMind heeft bewust **geen** tool die JavaScript op je Homey draait. Zo'n
+tool bestond tot v0.5.4 (`run_script`, achter een toggle) en is in v0.5.5
+verwijderd: Node's `vm` is geen beveiligingsgrens — via een meegegeven
+host-object is het echte `process` bereikbaar, en dus alles wat de app mag.
+Omdat een AI de code kiest, en de invoer van die AI namen bevat die jij niet
+beheert (apparaat- en flownamen), is dat risico het niet waard. Wat je
+vroeger met een script deed, doe je nu met een (tijdelijke) flow.
 
 ### Advanced Flows
 

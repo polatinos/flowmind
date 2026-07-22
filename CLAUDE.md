@@ -108,9 +108,9 @@ lib/
   `homey.cloud.getLocalAddress()`); mislukt dat, dan valt hij terug op
   `createAppAPI` zodat chat en apparaatbediening blijven werken
   (`apiMode`: 'local' | 'app'). Bij Missing Scopes in app-modus verrijkt
-  `executeTool` de fout met de sleutel-instructie; de systemprompt verbiedt
-  expliciet het "Run scripts"-advies als workaround (run_script gebruikt
-  hetzelfde token en zou identiek falen).
+  `executeTool` de fout met de sleutel-instructie; de systemprompt zegt er
+  expliciet bij dat de sleutel de énige route is, zodat het model geen
+  workarounds gaat verzinnen.
 - Route op 2026-07-21 twee keer onafhankelijk live geverifieerd (connect →
   createFlow → delete slaagde met de sleutel).
 - Niet opnieuw proberen op te lossen met permissies in `app.json`: de complete
@@ -245,16 +245,59 @@ Nachttest 2026-07-22 (v0.5.3/0.5.4, via de webterminal):
   com.govee.developer) deed NIETS; Tarik zat ernaast. Les: capability-status
   en Insights bewijzen géén fysieke verandering bij optimistische
   cloud-drivers — de waarneming van de gebruiker wint altijd.
-- v0.5.3: vertraagde acties → tijdelijke flow met delay (nooit run_script
-  als eerste greep), zonder overbodige bevestigingsvraag, en opruimen na
-  afloop.
+- v0.5.3: vertraagde acties → tijdelijke flow met delay, zonder overbodige
+  bevestigingsvraag, en opruimen na afloop.
 - Nog te verbeteren: bij zo'n tijdelijke actie expliciet melden "was 20s
   uit, staat nu weer aan" zodat de gebruiker niet twijfelt.
 
-**Volgende stappen:** uitbundige testronde + security-review (Tarik's
-expliciete agenda vóór indiening bij Athom); minimale scopes bepalen met
-een smallere sleutel; tests 6, 7 en 8 draaien. Kwaliteitslat: het niveau
-van Magnus' Home Assistant-werk vóór er over de App Store wordt nagedacht.
+## Security-review 2026-07-22 (vóór Athom-indiening)
+
+Uitgevoerd terwijl de Homey offline was; bevindingen met "bewezen" zijn
+lokaal nagespeeld met Node, niet beredeneerd.
+
+### `run_script` is verwijderd in v0.5.5 — niet terugbouwen
+- **Bewezen:** Node's `vm` is géén sandbox. Met exact de context-vorm uit
+  `runScript` leverde zowel `homeyApi.constructor.constructor('return
+  process')()` als `setTimeout.constructor('return process')()` het echte
+  `process`; via `child_process` draaide een shell-commando. Wie de tool kan
+  aanroepen heeft dus alles wat het app-proces heeft.
+- **Bewezen:** de "10s timeout" deed niets. `Promise.race` kan synchrone code
+  niet onderbreken — een busy loop van 3s liep gewoon af terwijl de timer van
+  1s nooit vuurde. Een `while(true)` van het model bevriest het hele
+  FlowMind-proces (chat, flow-kaarten, webterminal). `vm`'s eigen
+  `{ timeout }` dóódt zoiets wél (getest: 1013ms) — maar lost de escape niet
+  op, want `vm` is principieel geen beveiligingsgrens.
+- Waarom dit zwaarder weegt dan "de toggle staat toch uit": de code wordt
+  gekozen door een LLM, en diens invoer bevat strings die de gebruiker niet
+  beheert (apparaat- en flownamen uit andere apps → prompt-injectie).
+- De use-case die er écht was (vertraagde acties) is sinds v0.5.3 opgelost
+  met een tijdelijke flow.
+
+### Open bevindingen (nog te doen)
+- **Webterminal is optimistischer beschreven dan hij is.** De comment zegt
+  "chat only, no secrets over this port"; in werkelijkheid krijgt een
+  token-houder op het LAN volledige huisbediening, álle memories en
+  flow-beheer — over plain HTTP, met het token in de URL-query.
+  Te doen: comment eerlijk maken, `Host`-header valideren (DNS-rebinding),
+  token liever niet in de query laten staan.
+- **Geen rate limiting op `/api/chat`** → token-houder kan turns in een lus
+  vuren (kost API-credits, belast de Homey).
+- **`startChat` accepteert `provider`/`model` van de client** — onnodig; haal
+  ze uit settings.
+- **Geen `.homeyignore`** → `CLAUDE.md`, `.github` en `README` gaan mee het
+  App Store-pakket in.
+
+### Geverifieerd in orde
+- Geen secrets in de git-historie; `.gitignore` heeft backstops.
+- **XSS is correct afgehandeld**: de webterminal bouwt alles met
+  `textContent`, de settings-pagina escapet de ene `innerHTML` via `esc()`.
+- Keys gaan nooit terug naar de client (alleen `keysSet`-booleans).
+- Memories, flow-backups én chat-jobs zijn allemaal begrensd.
+
+**Volgende stappen:** de open bevindingen hierboven; uitbundige testronde
+(tests 6, 7, 8 + edge cases); minimale scopes bepalen met een smallere
+sleutel. Kwaliteitslat: het niveau van Magnus' Home Assistant-werk vóór er
+over de App Store wordt nagedacht.
 
 Bevindingen/fixes: versie bumpen (app.json + package.json), valideren,
 committen; pushen alleen na toestemming.

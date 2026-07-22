@@ -14,7 +14,6 @@ const SETTINGS = {
   GEMINI_KEY: 'geminiApiKey',
   COMPATIBLE_KEY: 'compatibleApiKey',
   COMPATIBLE_BASE_URL: 'compatibleBaseUrl',
-  ENABLE_CODE: 'enableCodeExecution',
   HOMEY_KEY: 'homeyApiKey',
   WEB_TERMINAL: 'webTerminalEnabled',
 };
@@ -33,6 +32,11 @@ const CHAT_JOB_TTL_MS = 10 * 60 * 1000;
 module.exports = class FlowMindApp extends Homey.App {
   async onInit() {
     this.log('FlowMind is starting…');
+    // v0.5.5 removed the script-execution tool; drop the old opt-in setting so
+    // no install keeps a stale "enabled" flag around.
+    try {
+      this.homey.settings.unset('enableCodeExecution');
+    } catch (err) { /* never set on this install */ }
     this._chatJobs = new Map();
     this.homeyContext = new HomeyContext(this.homey);
     try {
@@ -115,7 +119,6 @@ module.exports = class FlowMindApp extends Homey.App {
       model,
       providers: listProviders(),
       compatibleBaseUrl: this.homey.settings.get(SETTINGS.COMPATIBLE_BASE_URL) || '',
-      enableCodeExecution: Boolean(this.homey.settings.get(SETTINGS.ENABLE_CODE)),
       keysSet: {
         zen: Boolean(this.homey.settings.get(SETTINGS.ZEN_KEY)),
         anthropic: Boolean(this.homey.settings.get(SETTINGS.ANTHROPIC_KEY)),
@@ -162,9 +165,6 @@ module.exports = class FlowMindApp extends Homey.App {
     }
     if (typeof body.compatibleBaseUrl === 'string') {
       this.homey.settings.set(SETTINGS.COMPATIBLE_BASE_URL, body.compatibleBaseUrl.trim());
-    }
-    if (typeof body.enableCodeExecution === 'boolean') {
-      this.homey.settings.set(SETTINGS.ENABLE_CODE, body.enableCodeExecution);
     }
     if (typeof body.webTerminalEnabled === 'boolean') {
       this.homey.settings.set(SETTINGS.WEB_TERMINAL, body.webTerminalEnabled);

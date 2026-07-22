@@ -16,8 +16,6 @@
     "compatibleKeyPlaceholder": "optional",
     "compatibleBaseUrlLabel": "OpenAI-compatible Base URL",
     "keysHint": "Keys are stored encrypted on your Homey and never sent back to this page. Leave a field empty to keep the existing key. The Base URL applies to the \"OpenAI-compatible\" provider (Ollama/Groq/local, or Gemini via Google's OpenAI endpoint).",
-    "allowScripts": "Allow script execution (the AI may run JavaScript on your Homey)",
-    "allowScriptsHint": "Only enable this if you understand what it does: the AI can then execute code with access to your Homey. Off by default.",
     "homeyKeyTitle": "🔑 Homey API key (needed to create flows)",
     "homeyKeyHint": "Without this key the AI can read your system and control devices, but not create or edit flows — Homey does not give apps that permission. Create a key via my.homey.app → Settings → System → API keys and paste it here. It never leaves your Homey.",
     "homeyKeyLabel": "Homey API key",

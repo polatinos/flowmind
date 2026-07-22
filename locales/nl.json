@@ -16,8 +16,6 @@
     "compatibleKeyPlaceholder": "optioneel",
     "compatibleBaseUrlLabel": "OpenAI-compatibel Base URL",
     "keysHint": "Keys worden versleuteld opgeslagen op je Homey en nooit teruggestuurd naar deze pagina. Laat een veld leeg om de bestaande key te behouden. De Base URL geldt voor de provider \"OpenAI-compatibel\" (Ollama/Groq/lokaal, of Gemini via Google's OpenAI-endpoint).",
-    "allowScripts": "Scripts uitvoeren toestaan (de AI mag JavaScript op je Homey draaien)",
-    "allowScriptsHint": "Alleen inschakelen als je begrijpt wat dit doet: de AI kan dan code uitvoeren met toegang tot je Homey. Standaard uit.",
     "homeyKeyTitle": "🔑 Homey API-sleutel (nodig om flows te maken)",
     "homeyKeyHint": "Zonder deze sleutel kan de AI je systeem uitlezen en apparaten aansturen, maar geen flows maken of bewerken — Homey geeft apps die rechten niet. Maak een sleutel via my.homey.app → Instellingen → Systeem → API-sleutels en plak hem hier. Hij verlaat je Homey nooit.",
     "homeyKeyLabel": "Homey API-sleutel",
