@@ -305,6 +305,9 @@ committen; pushen alleen na toestemming.
 ## Werkwijze
 
 - Elke wijziging: `npx homey app validate --level publish` moet slagen.
+- **Einde sessie: `SESSIONS.md` bijwerken** (chronologisch logboek, nieuwste
+  onderaan). Blijvende lessen horen hier in CLAUDE.md, het verloop in
+  SESSIONS.md — niet dupliceren, anders lopen ze uit elkaar.
 - Nieuwe tool? Drie plekken: `tools.js` (definitie), `HomeyContext.js`
   (implementatie + `executeTool`-case), evt. systemprompt-uitleg.
 - Commits in het Engels; lokaal committen mag, **pushen alleen na
