@@ -53,9 +53,22 @@ Twee vormen, beide moeten gedekt:
   `args.app.id` die niet geïnstalleerd is. Dit is het Dyson-geval en het
   belangrijkste onderscheid met Flow Checker.
 
+Een app die geïnstalleerd is maar **uitgeschakeld** (`enabled: false`) of
+**gecrasht** (`crashed: true`) laat zijn kaarten net zo stil falen, dus die
+tellen mee als aparte probleemtypen `app_disabled` en `app_crashed`. Beide velden
+staan in het App-schema.
+
 De lijst geïnstalleerde apps komt van `getApps` (`GET /app`) op `ManagerApps`.
 Geverifieerd aanwezig in `homey-api` 3.17.3
 (`assets/specifications/HomeyAPIV3Local.json`).
+
+`getApps` levert een object gekeyed op app-id — bevestigd in de clientcode:
+`HomeyAPIV3/Manager.js` bouwt bij `crud: getAll` letterlijk `items[props.id]`.
+Dat id is het reverse-domain-id (`com.dyson`), niet het uuid dat de spec
+suggereert; de spec stempelt dat uuid-patroon op élk id-veld, ook op
+`FlowCardAction.id`, waarvan dit project weet dat het strings als
+`homey:manager:apps:restart_app` zijn. De web-UI van my.homey.app draait op
+dezelfde API en adresseert apps als `/settings/apps/no.runely.calendar`.
 
 ### 3. Ketting valt stil
 
@@ -78,8 +91,20 @@ expliciet **wel** mee: is die gevuld, dan heeft de gebruiker een vangnet gebouwd
 en valt die tak juist níet stil. Bewaak cycli met een bezochte-verzameling —
 advanced flows mogen lussen bevatten.
 
+Roots zijn kaarten met `type: 'trigger'` **én** `type: 'start'`. Een handmatig
+startbare advanced flow heeft alleen die laatste (zie `CLAUDE.md`), en FlowMinds
+eigen hulpflows voor vertraagde acties gebruiken hem. Alleen op `trigger`
+filteren laat zo'n flow zonder roots achter, waarna de walk niets vindt en het
+gevolg als 0 wordt gerapporteerd.
+
 Melding luidt dan: *"kaart 2 van 16 is kapot, waardoor 14 kaarten erna niet meer
-draaien"*.
+draaien"*. Notitiekaarten (`type: 'note'`) tellen niet mee in dat totaal.
+
+**Bekende beperking:** een `all`-join vuurt pas als álle inputs binnen zijn en
+sterft dus zodra er één wegvalt, terwijl de diff hem levend houdt zolang een
+andere route bestaat. Dat is onder-rapportage, nooit een valse melding. In de 24
+advanced flows op deze Homey komt geen enkele `all`-join voor, dus dit blijft
+bewust ongebouwd tot er een echt geval is.
 
 ## Uitvoer
 

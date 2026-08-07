@@ -121,3 +121,53 @@ Commits: `5d8e93a`
 
 **Openstaand bij afsluiten:** 5 commits lokaal vóór op `origin/main` (nog niet
 gepusht); tests 6/7/8 en de flow-test wachten tot de Homey stabiel is.
+
+---
+
+## Sessie 7 — 2026-08-07 — oorzaak van het wegvallen + `check_flows`
+
+Tarik zat in Turkije; de Homey viel opnieuw weg en werd door iemand thuis
+herstart. Begon als storingsonderzoek, eindigde in een nieuwe tool.
+
+- **Oorzaak van het flapperen gevonden: geheugendruk, geen wifi.** Twee metingen
+  kort na een verse herstart: 1,64 van 1,99 GB bezet bij uptime 2 minuten, en
+  swap groeide binnen vijf minuten van 6 naar 57 MB. Niet één lekkende app maar
+  het aantal — 41 apps à ~17-20 MB vaste Node-overhead per app.
+- Eerste LAN-scan was **waardeloos**: die scande het vakantieadres, niet Tariks
+  huis. Beide netwerken draaien toevallig op 192.168.68.0/24 (TP-Link Deco-
+  standaard). Alleen de cloudstatus was locatie-onafhankelijk bruikbaar.
+- **Alle 39 flows doorgelezen** om te bepalen welke apps echt in gebruik zijn.
+  Dat redde Loops, CountDown, LG ThinQ en Cast a text to Google van de weglijst:
+  die zitten in actieve flows, ondanks dat ze op het eerste gezicht ongebruikt
+  leken. CallMeBot bleek juist alleen via `logic:http` te lopen, niet via de app.
+- Tarik verwijderde Home Assistant, HomeyScript, Zendo, Video, LG TV (IR) en
+  Dyson. Resultaat: vrij geheugen 404 → 540 MB, swap 57 → 30 MB.
+- Op de Homey stond al een zelfgebouwde workaround-flow **"Systeem Herstel"**
+  die 16 apps herstart — maar met een `day_number = 1`-conditie, dus één keer
+  per maand. Aanpassen naar dagelijks is uitgesteld tot Tarik thuis is: enkele
+  apps eisen na een herstart opnieuw inloggen, en camera's/slot/alarm hangen
+  eraan.
+
+**Nieuw: `check_flows` (v0.6.0).** Uit dat onderzoek kwam een concreet gat.
+Homey markeert een flow alleen als `broken` wanneer een kaart zelf verdwijnt;
+een `restart_app`-kaart waarvan het *argument* naar een verwijderde app wijst
+blijft "gezond" heten. Precies dat staat in Systeem Herstel voor de verwijderde
+Dyson-app, op plek 2 van een ketting van 16 — Homey meldt `broken: false`
+terwijl 14 kaarten erachter nooit meer draaien. De community-app Flow Checker
+leunt op diezelfde vlag en mist het dus ook.
+
+- Ontwerp eerst vastgelegd in `docs/superpowers/specs/2026-08-07-flow-diagnose-design.md`.
+- Read-only tool; repareren blijft bij de bestaande `update_*`-tools mét backup.
+- Aansturing via de chat én via de bestaande `ai_ask`-kaart, zodat Homey's eigen
+  cron het plannen doet en de app geen timer of state nodig heeft.
+- Grafenlogica los getest met een scratch-script (12 checks, alle groen),
+  waaronder de gevallen waar naïef stroomafwaarts tellen fout gaat: kaarten met
+  een tweede inkomende route, een gevuld `outputError` als bewust vangnet, en
+  lussen.
+- Testcase blijft bewust staan: de Dyson-kaart wordt pas opgeruimd nadat de tool
+  hem op de echte Homey heeft gevonden.
+
+**Openstaand bij afsluiten:** installeren en testen op de Homey wacht tot Tarik
+thuis is; Systeem Herstel naar dagelijks; IcalCalendar (71 MB, groeiend, enige
+flow staat uit) is nog een keuze; CallMeBot vervangen door een ElevenLabs-
+belwebhook is een apart traject, veiligheidskritisch vanwege de SOS-flow.
