@@ -167,7 +167,20 @@ leunt op diezelfde vlag en mist het dus ook.
 - Testcase blijft bewust staan: de Dyson-kaart wordt pas opgeruimd nadat de tool
   hem op de echte Homey heeft gevonden.
 
+**Review door Fable 5.** Vijf punten waren raak en zijn verwerkt: `start`-kaarten
+werden niet als wortel herkend (waardoor handmatig startbare flows altijd "0
+geblokkeerd" meldden), een onbekend `flowId` gaf "geen problemen gevonden",
+uitgeschakelde en gecrashte apps werden gemist, het API-sleutel-advies verscheen
+ook bij een timeout, en standaardflow-kaarten dragen hun app-id in `id` in plaats
+van `ownerUri`. Eén punt is na controle verworpen: de aanname dat `any`/`all`-
+joins hun verbindingen in een `input`-array hebben komt uit `flowNormalize.js`,
+het schrijf-formaat — in de 24 opgehaalde advanced flows had geen enkele
+`any`-node zo'n array. Tests uitgebreid van 12 naar 22 checks.
+
+Commits: `0096fb8` (spec), `fe84e71` (v0.6.0) — gepusht naar `origin/main`.
+
 **Openstaand bij afsluiten:** installeren en testen op de Homey wacht tot Tarik
-thuis is; Systeem Herstel naar dagelijks; IcalCalendar (71 MB, groeiend, enige
-flow staat uit) is nog een keuze; CallMeBot vervangen door een ElevenLabs-
-belwebhook is een apart traject, veiligheidskritisch vanwege de SOS-flow.
+thuis is; de Dyson-kaart in Systeem Herstel blijft bewust staan als testcase;
+Systeem Herstel naar dagelijks; IcalCalendar (71 MB, groeiend, enige flow staat
+uit) is nog een keuze; CallMeBot vervangen door een ElevenLabs-belwebhook is een
+apart traject, veiligheidskritisch vanwege de SOS-flow.
