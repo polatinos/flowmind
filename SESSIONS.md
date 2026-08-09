@@ -187,6 +187,19 @@ apart traject, veiligheidskritisch vanwege de SOS-flow.
 
 ---
 
+## Sessie 8 — 2026-08-09 — korte sessie: opschoning vastgelegd
+
+De splitsing van sessie 7 (chronologie uit `CLAUDE.md` naar de bijlage
+hieronder) stond nog los in de werkmap. Gecontroleerd, gecommit als `8d5cc2e`
+"Split the guide from the log" en gepusht naar `origin/main`.
+
+Verder niets aan de app gewijzigd: Tarik was niet thuis en wilde niets aan de
+Homey doen wat hij niet kon controleren. De openstaande punten van sessie 7
+staan dus onveranderd: tests 6/7/8 en `check_flows` live, plus de vier
+security-punten in de bijlage.
+
+---
+
 ## Bijlage — testgeschiedenis en openstaande security-punten
 
 Verplaatst uit `CLAUDE.md` op 2026-08-08. CLAUDE.md houdt de blijvende lessen,
