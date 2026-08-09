@@ -184,3 +184,84 @@ thuis is; de Dyson-kaart in Systeem Herstel blijft bewust staan als testcase;
 Systeem Herstel naar dagelijks; IcalCalendar (71 MB, groeiend, enige flow staat
 uit) is nog een keuze; CallMeBot vervangen door een ElevenLabs-belwebhook is een
 apart traject, veiligheidskritisch vanwege de SOS-flow.
+
+---
+
+## Bijlage — testgeschiedenis en openstaande security-punten
+
+Verplaatst uit `CLAUDE.md` op 2026-08-08. CLAUDE.md houdt de blijvende lessen,
+dit bestand het verloop; hieronder de chronologie die daar niet thuishoort.
+
+### Teststand per 2026-07-21/22 (v0.3.1)
+
+Getest op Tarik's Homey Pro (Early 2023, fw 13.3.0), elke uitkomst gecontroleerd
+tegen de Homey API zelf.
+
+| # | Test | Status |
+|---|------|--------|
+| 1 | Chat zonder API-key (Zen/big-pickle) | ✅ |
+| 2 | Device aansturen (stekker uit én aan) | ✅ |
+| 3 | Geheugen over gesprekken heen | ✅ (nachttest 2026-07-22) |
+| 4 | Standaard flow maken via chat | ✅ v0.3.0 (met API-sleutel) |
+| 5 | Advanced flow maken + bewerken via chat | ✅ v0.3.0/0.3.1 (incl. auto-backup) |
+| 6 | Flow-kaarten `ai_do` / `ai_ask` | ⏳ risico: flow-timeout, maxSteps 6 |
+| 7 | Insights | ⏳ |
+| 8 | Moods (`moods.setMood` nooit live getest) | ⏳ |
+| 9 | NL-vertaling van de settings-pagina | ✅ |
+| 10 | Pushmelding via autocomplete (`push_text` + user) | ✅ v0.3.1, push kwam aan op telefoon |
+
+Gevonden en opgelost in de v0.2.x-sessie: de 10s-timeout, het waarde-type bij
+`control_device`, twee hardcoded Nederlandse labels, en Markdown die niet
+gerenderd werd.
+
+**v0.3.0:** API-sleutel-setting + lokale API-client met fallback; invoerveld
+groeit mee met de tekst (max ~8 regels) en het chatvenster is hoger op brede
+schermen (media query ≥900px); het "Scripts uitvoeren"-advies bij een mislukte
+flow vervangen door de juiste instructie (API-sleutel instellen), zowel in de
+systemprompt als in de foutmelding van `executeTool`.
+
+**v0.3.1** (lessen uit test 4/5): tool `search_flow_card_autocomplete`;
+dropdown-argumenten tonen hun `values` in `list_flow_cards`; systemprompt
+uitgebreid met pushmelding vs tijdlijn, autocomplete-plicht en de
+`start`-kaart-eis voor handmatig startbare advanced flows.
+
+**v0.4.0 — terminal-UI + attitude:** settings-pagina volledig terminal-stijl
+(donker, monospace, `❯`-prompt, secties als `[ instellingen ]`), statusregel
+onder de composer (provider · model · lokaal ✓ + verstreken seconden), kopregel
+met verbindingsstatus. Live actielog via een realtime `chatStep`-event
+(`onStep`-callback in `runAssistant` → `homey.api.realtime`). Client-side
+slash-commando's `/clear`, `/help`, `/memories`. Persoonlijkheid in de
+systemprompt: droog, kort, licht eigenwijs; géén persoonlijkheid in
+`[flow]`-runs. Bijna-incident: het model verzon 17 device-UUID's en vuurde er
+blind commando's op af (alle faalden toevallig op Not Found).
+
+**Nachttest 2026-07-22 (v0.5.3/0.5.4, via de webterminal):** test 3 ✅,
+`/help`, `/memories` en token-403 ✅. Incident met een verzonnen device-UUID in
+advanced-flow-kaarten → fix `_assertDeviceCardsExist` in v0.5.4. Retry daarna:
+flow correct, Homey-status klapte om (uit 23:13:27Z, aan 23:13:49Z) — maar de
+fysieke Govee-lamp deed niets; Tarik zat ernaast. v0.5.3 bracht vertraagde
+acties via een tijdelijke flow met delay en opruimen na afloop.
+
+### Security-review 2026-07-22 — openstaande punten
+
+Uitgevoerd terwijl de Homey offline was; bevindingen met "bewezen" zijn lokaal
+nagespeeld met Node, niet beredeneerd. De `run_script`-conclusie staat in
+`CLAUDE.md`, want die is blijvend.
+
+- **Webterminal.** Comment eerlijk maken, `Host`-header valideren tegen
+  DNS-rebinding, token liever niet in de URL-query laten staan.
+- **Geen rate limiting op `/api/chat`** → een token-houder kan turns in een lus
+  vuren (kost API-credits, belast de Homey).
+- **`startChat` accepteert `provider`/`model` van de client** — onnodig; haal ze
+  uit settings.
+- **Geen `.homeyignore`** → `CLAUDE.md`, `.github` en `README` gaan mee het App
+  Store-pakket in.
+
+Geverifieerd in orde: geen secrets in de git-historie (`.gitignore` heeft
+backstops); XSS correct afgehandeld (webterminal bouwt alles met `textContent`,
+settings-pagina escapet de ene `innerHTML` via `esc()`); keys gaan nooit terug
+naar de client (alleen `keysSet`-booleans); memories, flow-backups en chat-jobs
+zijn alle drie begrensd.
+
+Werkwijze bij bevindingen/fixes: versie bumpen (app.json + package.json),
+valideren, committen; pushen alleen na toestemming.

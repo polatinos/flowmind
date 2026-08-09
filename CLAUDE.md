@@ -176,84 +176,31 @@ lib/
   `get_flow`/`list_flow_cards` opzoeken, nooit gokken (staat ook in de
   systemprompt).
 
-## Test op echte Homey — stand per 2026-07-21/22 (v0.3.1)
+### Verifieer tegen de API, niet tegen wat de assistent beweert
 
-Getest op Tarik's Homey Pro (Early 2023, fw 13.3.0). Elke uitkomst is
-gecontroleerd **tegen de Homey API zelf**, niet op wat de assistent beweerde —
-dat verschil legde de stekker-bug bloot (hij meldde eerlijk falen) én had een
-vals succes ook opgemerkt.
+Elke testuitkomst is gecontroleerd **tegen de Homey API zelf**. Dat verschil
+legde de stekker-bug bloot en had een vals succes ook opgemerkt. Twee lessen
+die daaruit volgden:
 
-| # | Test | Status |
-|---|------|--------|
-| 1 | Chat zonder API-key (Zen/big-pickle) | ✅ |
-| 2 | Device aansturen (stekker uit én aan) | ✅ |
-| 3 | Geheugen over gesprekken heen | ⏳ |
-| 4 | Standaard flow maken via chat | ✅ v0.3.0 (met API-sleutel) |
-| 5 | Advanced flow maken + bewerken via chat | ✅ v0.3.0/0.3.1 (incl. auto-backup) |
-| 6 | Flow-kaarten `ai_do` / `ai_ask` | ⏳ risico: flow-timeout, maxSteps 6 |
-| 7 | Insights | ⏳ |
-| 8 | Moods (`moods.setMood` nooit live getest) | ⏳ |
-| 9 | NL-vertaling van de settings-pagina | ✅ |
-| 10 | Pushmelding via autocomplete (`push_text` + user) | ✅ v0.3.1, push kwam aan op telefoon |
+- **Verzonnen device-UUID's.** Zonder echte ID's in de gesprekscontext verzint
+  het model ze — en Homey slaat een advanced flow met onbekende device-kaarten
+  gewoon op ("niet beschikbaar"), waarna hij stil niets doet en het model
+  "Gedaan" meldt. Sinds v0.5.4 weigert `_assertDeviceCardsExist` onbekende
+  device-ids bij elke flow create/update; de prompt eist ID's uit een
+  tool-result van dít gesprek en verificatie vóór een succesclaim. De
+  gesprekshistorie bevat alléén tekst, geen toolresultaten — dus dit kan in
+  productie ook. Overweeg dezelfde bescherming voor andere id-parameters.
+- **Capability-status bewijst geen fysieke verandering.** Bij optimistische
+  cloud-drivers (getest met Govee, `com.govee.developer`) klapte de
+  Homey-status netjes om terwijl de lamp niets deed. Insights liegen dan mee.
+  De waarneming van de gebruiker wint altijd.
+- Bij een vertraagde actie via een tijdelijke flow: meld expliciet "was 20s
+  uit, staat nu weer aan", anders twijfelt de gebruiker.
 
-Gevonden en opgelost (v0.2.x-sessie): de 10s-timeout, het waarde-type bij
-`control_device`, twee hardcoded Nederlandse labels, en Markdown die niet
-gerenderd werd. Zie de kritieke lessen hierboven.
-
-In v0.3.0 opgelost:
-- API-sleutel-setting + lokale API-client met fallback (zie hierboven).
-- Het invoerveld groeit nu mee met de tekst (max ~8 regels) en het
-  chatvenster is hoger op brede schermen (media query ≥900px).
-- Het "Scripts uitvoeren"-advies bij een mislukte flow is vervangen door de
-  juiste instructie (API-sleutel instellen), zowel in de systemprompt als in
-  de foutmelding van `executeTool`.
-
-In v0.3.1 opgelost (lessen uit test 4/5):
-- Tool `search_flow_card_autocomplete` (autocomplete-argumenten invullen);
-  dropdown-argumenten tonen nu hun `values` in `list_flow_cards`.
-- Systemprompt: pushmelding vs tijdlijn, autocomplete-plicht, en de
-  `start`-kaart-eis voor handmatig startbare advanced flows.
-
-v0.4.0 — terminal-UI + attitude:
-- Settings-pagina volledig terminal-stijl (donker, monospace, `❯`-prompt,
-  secties als `[ instellingen ]`). Statusregel onder de composer
-  (provider · model · lokaal ✓ + verstreken seconden), kopregel met
-  verbindingsstatus.
-- **Live actielog**: de app stuurt per toolstap een realtime `chatStep`-event
-  (`onStep`-callback in `runAssistant` → `homey.api.realtime`); de pagina
-  toont `› tool …/✓/⚠` live en vervangt dat na afloop door het bestaande
-  inklapbare stappenblokje.
-- Slash-commando's client-side: `/clear`, `/help`, `/memories`.
-- Persoonlijkheid in de systemprompt: droog, kort, licht eigenwijs; geeft
-  tegengas bij onverstandige verzoeken; géén persoonlijkheid in `[flow]`-runs.
-- **Les (bijna-incident):** zonder de echte ID's in de gesprekscontext
-  verzon het model 17 device-UUID's en vuurde er blind commando's op af
-  (alle faalden toevallig op Not Found). De gesprekshistorie bevat alléén
-  tekst, geen toolresultaten, dus dit kan in productie ook. Mitigatie: de
-  `control_device`-beschrijving eist nu expliciet ID's uit een tool-result
-  van dít gesprek. Overweeg later hetzelfde voor andere id-parameters.
-
-Nachttest 2026-07-22 (v0.5.3/0.5.4, via de webterminal):
-- Test 3 (geheugen over gesprekken) ✅. `/help`, `/memories`, token-403 ✅.
-- **Incident:** model verzon een device-UUID in advanced-flow-kaarten;
-  Homey slaat zo'n flow gewoon op (kaarten "niet beschikbaar") en hij doet
-  stil niets — waarna het model "Gedaan" meldde. Fix v0.5.4:
-  `_assertDeviceCardsExist` weigert onbekende device-ids bij elke flow
-  create/update; prompt: ids alleen uit tool-results van dít gesprek +
-  "verifieer vóór je succes claimt". Retry daarna: flow correct, Homey-status
-  klapte om (uit 23:13:27Z, aan 23:13:49Z) — maar de fysieke lamp (Govee,
-  com.govee.developer) deed NIETS; Tarik zat ernaast. Les: capability-status
-  en Insights bewijzen géén fysieke verandering bij optimistische
-  cloud-drivers — de waarneming van de gebruiker wint altijd.
-- v0.5.3: vertraagde acties → tijdelijke flow met delay, zonder overbodige
-  bevestigingsvraag, en opruimen na afloop.
-- Nog te verbeteren: bij zo'n tijdelijke actie expliciet melden "was 20s
-  uit, staat nu weer aan" zodat de gebruiker niet twijfelt.
-
-## Security-review 2026-07-22 (vóór Athom-indiening)
-
-Uitgevoerd terwijl de Homey offline was; bevindingen met "bewezen" zijn
-lokaal nagespeeld met Node, niet beredeneerd.
+**Openstaande tests:** 6 (`ai_do`/`ai_ask` flow-kaarten, risico: flow-timeout
+bij `maxSteps: 6`), 7 (Insights), 8 (Moods — `moods.setMood` nooit live
+getest), `check_flows` zelf, en de minimale API-sleutel-scopes met een smallere
+sleutel. De chronologie van wat wél getest is staat in `SESSIONS.md`.
 
 ### `run_script` is verwijderd in v0.5.5 — niet terugbouwen
 - **Bewezen:** Node's `vm` is géén sandbox. Met exact de context-vorm uit
@@ -273,34 +220,19 @@ lokaal nagespeeld met Node, niet beredeneerd.
 - De use-case die er écht was (vertraagde acties) is sinds v0.5.3 opgelost
   met een tijdelijke flow.
 
-### Open bevindingen (nog te doen)
-- **Webterminal is optimistischer beschreven dan hij is.** De comment zegt
-  "chat only, no secrets over this port"; in werkelijkheid krijgt een
-  token-houder op het LAN volledige huisbediening, álle memories en
-  flow-beheer — over plain HTTP, met het token in de URL-query.
-  Te doen: comment eerlijk maken, `Host`-header valideren (DNS-rebinding),
-  token liever niet in de query laten staan.
-- **Geen rate limiting op `/api/chat`** → token-houder kan turns in een lus
-  vuren (kost API-credits, belast de Homey).
-- **`startChat` accepteert `provider`/`model` van de client** — onnodig; haal
-  ze uit settings.
-- **Geen `.homeyignore`** → `CLAUDE.md`, `.github` en `README` gaan mee het
-  App Store-pakket in.
+### Webterminal: de comment liegt
 
-### Geverifieerd in orde
-- Geen secrets in de git-historie; `.gitignore` heeft backstops.
-- **XSS is correct afgehandeld**: de webterminal bouwt alles met
-  `textContent`, de settings-pagina escapet de ene `innerHTML` via `esc()`.
-- Keys gaan nooit terug naar de client (alleen `keysSet`-booleans).
-- Memories, flow-backups én chat-jobs zijn allemaal begrensd.
+`lib/webTerminal.js` zegt "chat only, no secrets over this port". In
+werkelijkheid krijgt een token-houder op het LAN volledige huisbediening, álle
+memories en flow-beheer — over plain HTTP, met het token in de URL-query. Ga
+daar bij elke wijziging aan die server van uit.
 
-**Volgende stappen:** de open bevindingen hierboven; uitbundige testronde
-(tests 6, 7, 8 + edge cases); minimale scopes bepalen met een smallere
-sleutel. Kwaliteitslat: het niveau van Magnus' Home Assistant-werk vóór er
-over de App Store wordt nagedacht.
+**Kwaliteitslat:** het niveau van Magnus' Home Assistant-werk, vóór er over de
+App Store wordt nagedacht.
 
-Bevindingen/fixes: versie bumpen (app.json + package.json), valideren,
-committen; pushen alleen na toestemming.
+De openstaande security-punten (Host-header-validatie, token uit de query,
+rate limiting op `/api/chat`, client-gekozen `provider`/`model` uit
+`startChat`, `.homeyignore`) staan met toelichting in `SESSIONS.md`.
 
 ## Werkwijze
 
