@@ -122,6 +122,19 @@ lib/
 - Niet opnieuw proberen op te lossen met permissies in `app.json`: de complete
   lijst kent maar dertien permissies en `homey:manager:api` is de enige
   relevante.
+- **`createLocalAPI` controleert de sleutel NIET.** Hij doet alleen een
+  ongeauthenticeerde `GET /api/manager/system/ping` en kijkt naar de
+  `X-Homey-ID`-header; elke niet-lege string levert dus een client op, waarna
+  álles (ook lezen) faalt met "Invalid Token" terwijl de UI groen meldt.
+  Daarom doet `init()` sinds v0.6.2 één geauthenticeerde call:
+  `api.sessions.getSessionMe()` — in de spec `scopes: []`, dus die slaagt bij
+  elke geldige sleutel ongeacht rechten en faalt alleen op een geweigerd token.
+  Niet weghalen "omdat het een extra call is".
+- **Een mislukte local-verbinding mag niet blijven plakken.** `_ensure()`
+  verbindt alleen als `this.api` null is, dus zonder hulp blijft een
+  eenmalige storing hangen tot een settings-save of herstart — en die staat
+  sinds v0.6.1 in élke systemprompt. `getFlowWriteStatus()` probeert daarom
+  opnieuw, hooguit eens per `LOCAL_RETRY_COOLDOWN_MS` (5 min).
 - Minimale scopes nog onbekend — getest met een full-access sleutel.
   Verwachting (nog verifiëren met een smallere sleutel): `homey.flow` +
   `homey.device` + `homey.zone` + `homey.insights` + `homey.mood`.

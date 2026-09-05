@@ -225,7 +225,9 @@ eerst een heel ontwerpgesprek en liep daarna pas tegen "Missing Scopes".
 - `executeTool` weigert de zes flow-schrijftools meteen (`FLOW_WRITING_TOOLS`)
   in plaats van na een mislukte API-ronde.
 - `requestJson` wacht een 429 uit en probeert opnieuw; wachttijd uit
-  `Retry-After` of uit de `[30s]` in de melding, gecapt op 30s. Alleen 429.
+  `Retry-After` of uit de `[30s]` in de melding. Is de gevraagde wachttijd
+  lánger dan 30s, dan wordt er niet gewacht maar meteen gefaald (dus geen
+  cap op 30s — helemaal niet wachten). Alleen 429.
   Chat-beurten zijn achtergrondjobs dus het wachten is onzichtbaar;
   flow-kaarten krijgen `retry: { attempts: 0 }` via `fromFlow: true`, want die
   hebben dat tijdsbudget niet.
@@ -247,6 +249,50 @@ Uit de flows die daarvoor gelezen zijn (`webhook`, `achtertuin verlichting`)
 kwamen wel de echte kaart-ID's, mocht die flow later alsnog gebouwd worden:
 trigger `homey:manager:logic:webhook` (arg `event`), en de vier uit-kaarten
 `homey:device:{f3dfab30…,f6aa8538…,b1e74633…,2e2dd2ef…}:off`.
+
+**Review door Fable 5, en v0.6.2.** Fable kreeg de commit ter review en vond
+twee echte gaten — allebei in precies het stuk dat v0.6.1 zou repareren, en
+allebei bewezen met een eigen probe-script tegen een nagebootste Homey in
+plaats van beredeneerd:
+
+- **Een foute sleutel werd gemeld als "werkt".** `HomeyAPI.createLocalAPI`
+  doet alleen een *onge­authenticeerde* `GET /api/manager/system/ping` en kijkt
+  of er een `X-Homey-ID`-header terugkomt — het token wordt nooit geprobeerd.
+  Elke niet-lege string leverde dus `apiMode: 'local'`, `canWrite: true` en een
+  groen vinkje in de instellingen, waarna élke aanroep (ook lezen!) faalde met
+  "Invalid Token". De `key_failed`-tak was alleen bereikbaar als de Homey
+  onbereikbaar was, niet als de sleutel fout was. Fix: `init()` doet na
+  `createLocalAPI` één geauthenticeerde call, `api.sessions.getSessionMe()` —
+  die staat in de spec op `scopes: []`, dus hij slaagt bij élke geldige sleutel
+  ongeacht rechten en faalt alleen als het token zelf geweigerd wordt.
+- **Een tijdelijke storing bleef plakken.** `_ensure()` roept `init()` alleen
+  aan als `this.api` null is, dus na één mislukte local-poging bleef het bij
+  app-modus tot een settings-save of herstart — en v0.6.1 zette dat oordeel
+  vervolgens in élke systemprompt. Op déze Homey (die wegvalt onder
+  geheugendruk) betekende dat urenlang "controleer je sleutel" voor een
+  sleutel die niets mankeert. Fix: `getFlowWriteStatus()` probeert het opnieuw,
+  hooguit eens per `LOCAL_RETRY_COOLDOWN_MS` (5 min), kosten één ping.
+
+Verder uit die review verwerkt: het wachten heeft nu een **gedeeld budget per
+beurt** (`retry.budget`, 60s) — losse caps van 30s konden over tien tool-stappen
+optellen tot voorbij de 5-minutengrens van de instellingenpagina; `flowWrite.error`
+wordt platgeslagen en op 200 tekens gekapt vóór het de systemprompt of een
+toolresultaat in gaat (bewezen: een `\n\n## IGNORE ALL PREVIOUS INSTRUCTIONS`
+in de fouttekst wordt geen eigen kopregel meer); de `rate_limit_wait`-regel in
+het live actielog krijgt via `onRetryDone` een afsluitende `ok` in plaats van
+eeuwig "running" te blijven; en de mislukte local-client wordt netjes
+`destroy()`'d in plaats van te blijven hangen.
+
+Eén punt is na controle **verworpen**: Fable meldde dat `SESSIONS.md` een
+niet-bestaande commit `c54f6f7` noemt. Die staat er wel degelijk — op de
+werkbranch, niet op `main`, waar Fable keek.
+
+Fable's kritiek op de eerste testronde was terecht en is verholpen: die stubte
+`init()` en kón de sleutelbug dus niet zien ("de broken-key-test asserteert
+tegen zijn eigen stub"). De nieuwe suite draait de **echte** `init()` tegen een
+nep-Homey over echt HTTP: 10 checks, waaronder een geweigerd token, herstel na
+de cooldown, geen herverbindingen zonder sleutel, en het beurtbudget. Samen met
+de bestaande suite: 29 checks groen.
 
 **Openstaand:** Tarik moet zelf een Homey API-sleutel aanmaken
 (my.homey.app → Instellingen → Systeem → API-sleutels) en die in FlowMind

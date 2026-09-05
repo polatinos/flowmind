@@ -1,6 +1,6 @@
 {
   "name": "nl.polatinos.flowmind",
-  "version": "0.6.1",
+  "version": "0.6.2",
   "description": "FlowMind — een AI-assistent die op je Homey Pro draait met een chat in de app-instellingen.",
   "main": "app.js",
   "license": "MIT",
