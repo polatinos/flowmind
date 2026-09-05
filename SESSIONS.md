@@ -334,10 +334,46 @@ bij voor de twee nieuwe scenario's (mislukte herverbinding behoudt de werkende
 client; `this.api` is nooit null tijdens een herverbinding) en voor de
 404-firmware. 15 checks, plus de 19 bestaande.
 
-**Openstaand:** Tarik moet zelf een Homey API-sleutel aanmaken
-(my.homey.app → Instellingen → Systeem → API-sleutels) en die in FlowMind
-plakken; tot dan blijft flow-schrijven geblokkeerd. Verder onveranderd: tests
-6/7/8, `check_flows` live, en de vier security-punten in de bijlage.
+**De sleutel was er ooit wél — waar is hij gebleven?** Tarik meldde aan het eind
+van de sessie dat hij "alles al gedaan" had. Dat is geloofwaardig: op
+2026-07-21 zijn er met een sleutel echt flows aangemaakt (twee keer
+onafhankelijk geverifieerd). De statusregel zei nu `basis — geen
+flow-schrijfsleutel`, dus de sleutel is **verdwenen**, niet nooit ingevuld.
+
+Nagekeken in de code: de app kan de sleutel niet per ongeluk wissen.
+`saveConfig` wist alleen bij een expliciete `clearHomeyApiKey: true` (de knop
+"Verwijder sleutel"); een leeg invoerveld laat de opgeslagen sleutel met rust,
+en de settings-pagina leegt dat veld ná opslaan met opzet.
+
+**Waarschijnlijke oorzaak (hypothese, niet geverifieerd):** `npx homey app run`
+installeert de app *tijdelijk* — stopt het proces, dan verdwijnt de app en
+daarmee álle app-settings, inclusief `homeyApiKey`. Alleen `npx homey app
+install` is permanent. Dat past precies op "werkte in juli, weg in september".
+Te bevestigen door na een `app install` de sleutel te zetten en te kijken of
+hij een herstart overleeft.
+
+**Volgende sessie — dit als eerste, in deze volgorde:**
+1. `npx homey app install` (niet `app run`) zodat de app permanent staat.
+2. Sleutel maken op my.homey.app → Instellingen → Systeem → API-sleutels,
+   plakken in FlowMind → Opslaan.
+3. Statusregel controleren: moet `lokaal ✓` worden in plaats van `basis`. Sinds
+   v0.6.2 is dat vinkje betrouwbaar — het verschijnt alleen na een
+   geauthenticeerde call.
+4. Pas dan de flow-test: de webhook-flow voor de achtertuin. Kaart-ID's staan
+   hierboven.
+5. Meteen daarna live bevestigen wat hier niet te bevestigen was: serveert de
+   echte Homey `/session/me` voor een API-sleutel? Zo niet, dan valt de app
+   terug op vertrouwen (fail-soft) en is er niets stuk — maar dan hoort de
+   check aangepast te worden.
+
+Verder onveranderd openstaand: tests 6/7/8, `check_flows` live, en de vier
+security-punten in de bijlage.
+
+**Testscripts van deze sessie** stonden in de scratch-map en zijn dus weg
+(29 checks over de retry/guard, 15 over de verbinding, 8 end-to-end van
+"geen sleutel" tot een geposte flow). Als die verificatie herhaalbaar moet
+zijn, horen ze in de repo — dat is een bewuste afwijking van "geen unit
+tests" en wacht op Tariks besluit.
 
 ---
 
