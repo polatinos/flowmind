@@ -126,10 +126,21 @@ lib/
   ongeauthenticeerde `GET /api/manager/system/ping` en kijkt naar de
   `X-Homey-ID`-header; elke niet-lege string levert dus een client op, waarna
   álles (ook lezen) faalt met "Invalid Token" terwijl de UI groen meldt.
-  Daarom doet `init()` sinds v0.6.2 één geauthenticeerde call:
-  `api.sessions.getSessionMe()` — in de spec `scopes: []`, dus die slaagt bij
+  Daarom doet `_buildLocalApi()` sinds v0.6.2 één geauthenticeerde call:
+  `client.sessions.getSessionMe()` — in de spec `scopes: []`, dus die slaagt bij
   elke geldige sleutel ongeacht rechten en faalt alleen op een geweigerd token.
   Niet weghalen "omdat het een extra call is".
+- **Alleen 401/403 telt als "sleutel fout".** Slaagt de verbinding maar mislukt
+  de controle-call anders (bv. 404 op firmware zonder dat endpoint), dan wordt
+  de sleutel vertrouwd in plaats van geweigerd — anders zou een verkeerde
+  aanname élke sleutelhouder degraderen, erger dan de bug die de check
+  oplost. Dit is nog niet live tegen een echte Homey bevestigd.
+- **Bouw eerst, wissel dan om.** `_buildLocalApi()` raakt `this.api` niet aan;
+  `_retryLocalApi()` vervangt de client pas als de nieuwe bewezen is. Doe dit
+  níét met `reset()` (die nult `this.api` eerst): als de Homey dan even geen
+  app-token kan geven, staat de app zonder client en faalt élke tool in die
+  beurt. `reset()` blijft wél de juiste keuze bij een expliciete
+  sleutelwijziging, waar de gebruiker op het resultaat wacht.
 - **Een mislukte local-verbinding mag niet blijven plakken.** `_ensure()`
   verbindt alleen als `this.api` null is, dus zonder hulp blijft een
   eenmalige storing hangen tot een settings-save of herstart — en die staat

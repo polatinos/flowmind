@@ -128,9 +128,22 @@ module.exports = class FlowMindApp extends Homey.App {
         compatible: Boolean(this.homey.settings.get(SETTINGS.COMPATIBLE_KEY)),
       },
       // Local Homey API key status: flows can only be created in 'local' mode.
-      homeyApi: this.homeyContext.getApiStatus(),
+      // Ask for the write status first: it retries a failed key connection once
+      // the cooldown has passed, so opening the settings after a glitch shows
+      // the key as working again instead of a stale error.
+      homeyApi: await this._refreshedApiStatus(),
       webTerminal: await this._webTerminalStatus(),
     };
+  }
+
+  /** API status, giving a previously failed key one chance to reconnect. */
+  async _refreshedApiStatus() {
+    try {
+      await this.homeyContext.getFlowWriteStatus();
+    } catch (err) {
+      // Reporting the status must never break the settings page.
+    }
+    return this.homeyContext.getApiStatus();
   }
 
   /** Status + ready-to-open URL for the desktop web terminal. */

@@ -294,6 +294,46 @@ nep-Homey over echt HTTP: 10 checks, waaronder een geweigerd token, herstel na
 de cooldown, geen herverbindingen zonder sleutel, en het beurtbudget. Samen met
 de bestaande suite: 29 checks groen.
 
+**Tweede reviewronde door Fable, en v0.6.3.** Fable kreeg v0.6.2 terug met de
+vraag zijn eigen bevindingen te verifiëren. Alle vier de fixes hielden stand
+(bewezen met probes tegen de échte `homey-api`-client), maar er kwam één nieuwe
+fout uit — geïntroduceerd door de fix zelf:
+
+- **De herstelpoging sloopte de werkende verbinding vóórdat er een vervanger
+  was.** `reset()` nult `this.api` en pas daarna bouwt `init()` een nieuwe
+  client. Faalt `createAppAPI` op dat moment — drie core-calls op een Homey die
+  al onder druk staat — dan blijft `this.api` null en faalt élke tool in die
+  beurt met een `createAppAPI`-fout. Fable's probe reproduceerde dat.
+  Fix: `_buildLocalApi()` bouwt en verifieert zónder `this.api` aan te raken,
+  `_retryLocalApi()` wisselt pas om als de nieuwe client bewezen is. Daarmee
+  verviel ook zijn punt 2 (`this.api` kortstondig null → een gelijktijdige
+  flow-kaart of webterminal-beurt zou dubbel verbinden).
+- **Punt 4 (kosmetisch) meegenomen:** `getApiStatus()` is synchroon en triggerde
+  de hersteltimer niet, dus de statusregel in de instellingen bleef na een
+  storing een oude fout tonen. `getConfig` gaat nu via `_refreshedApiStatus()`.
+
+**Punt 3 kon niemand hier beslissen:** of een échte Homey `/session/me` serveert
+voor een API-sleutel. Alles op één na wijst de goede kant op (de spec komt uit
+de firmware en de `Session.type`-enum kent `PAT` expliciet; de echte client
+stuurt aantoonbaar `GET /api/manager/sessions/session/me` met `Bearer`), maar
+een verkeerde aanname zou élke sleutelhouder degraderen. Daarom is de check nu
+**fail-soft**: alleen 401/403 (of een expliciete auth-fout in de tekst) geldt
+als "sleutel geweigerd"; komt de verbinding tot stand maar mislukt de controle
+anders — 404 op onbekende firmware bijvoorbeeld — dan wordt de sleutel
+vertrouwd, precies zoals vóór de check. Getest met een nagebootste Homey die
+404 geeft. Blijft openstaan: één keer live bevestigen met `app run --remote`.
+
+Fable trok zijn punt 7 (de "niet-bestaande" commit `c54f6f7`) zelf in na
+controle van de reflog: hij keek tijdens de eerste ronde naar `fa606dc`, dat
+één minuut later is geamend.
+
+Testsuite herschreven op zijn kritiek: geen vaste poort meer, de
+`Authorization`-header en het exacte pad worden nu geasserteerd, "binnen de
+cooldown" telt echte requests in plaats van alleen de status, en er zijn tests
+bij voor de twee nieuwe scenario's (mislukte herverbinding behoudt de werkende
+client; `this.api` is nooit null tijdens een herverbinding) en voor de
+404-firmware. 15 checks, plus de 19 bestaande.
+
 **Openstaand:** Tarik moet zelf een Homey API-sleutel aanmaken
 (my.homey.app → Instellingen → Systeem → API-sleutels) en die in FlowMind
 plakken; tot dan blijft flow-schrijven geblokkeerd. Verder onveranderd: tests
