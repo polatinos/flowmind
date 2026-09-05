@@ -84,6 +84,7 @@ module.exports = class FlowMindApp extends Homey.App {
     const result = await this.chat({
       messages: [{ role: 'user', content: `[flow] ${instruction}` }],
       maxSteps: 6,
+      fromFlow: true,
     });
     return (result && result.reply) || 'Done.';
   }
@@ -320,6 +321,9 @@ module.exports = class FlowMindApp extends Homey.App {
       homeyContext: this.homeyContext,
       log: (msg) => this.log(`${msg} (+${Date.now() - startedAt}ms)`),
       onStep,
+      // Flow runs must answer inside Homey's flow-card deadline, so they take
+      // a rate limit as a failure instead of waiting it out.
+      ...(body.fromFlow ? { retry: { attempts: 0 } } : {}),
     }).catch((err) => {
       this.error(`[chat] failed after ${Date.now() - startedAt}ms:`, err.message);
       throw err;

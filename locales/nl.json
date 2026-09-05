@@ -63,6 +63,8 @@
     "welcome": "Welkom! Typ gewoon je opdracht — standaard chat je gratis via OpenCode Zen (Big Pickle), zonder key. Andere AI-providers stel je in via Instellingen. Typ /help voor commando's.",
     "noReply": "(geen antwoord)",
     "jobLost": "Het antwoord is niet meer beschikbaar — de app is waarschijnlijk herstart. Stel je vraag opnieuw.",
-    "jobTimeout": "De assistent deed er langer dan 5 minuten over. Probeer het opnieuw, of kies een sneller model."
+    "jobTimeout": "De assistent deed er langer dan 5 minuten over. Probeer het opnieuw, of kies een sneller model.",
+    "errRateLimited": "Het gratis AI-model is druk (rate limit). Er is gewacht en opnieuw geprobeerd, maar de limiet geldt nog. Probeer het over een minuut, of kies een andere provider bij Instellingen.",
+    "errAuth": "De AI-provider weigert de API-sleutel. Controleer de sleutel voor deze provider bij Instellingen."
   }
 }

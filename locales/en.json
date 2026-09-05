@@ -63,6 +63,8 @@
     "welcome": "Welcome! Just type your request — by default you chat for free via OpenCode Zen (Big Pickle), no key needed. Configure other AI providers under Settings. Type /help for commands.",
     "noReply": "(no reply)",
     "jobLost": "The answer is no longer available — the app probably restarted. Please ask again.",
-    "jobTimeout": "The assistant took longer than 5 minutes. Please try again, or pick a faster model."
+    "jobTimeout": "The assistant took longer than 5 minutes. Please try again, or pick a faster model.",
+    "errRateLimited": "The free AI model is busy (rate limit). It waited and retried, but the limit is still in force. Try again in a minute, or switch to another provider under Settings.",
+    "errAuth": "The AI provider rejected the API key. Check the key for this provider under Settings."
   }
 }

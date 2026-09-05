@@ -288,6 +288,16 @@
         return String(s).replace(/[&<>]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;' }[c]));
       }
 
+      // Provider errors arrive as raw HTTP text ("HTTP 429: Error from provider
+      // (Console): Rate limit exceeded..."), which tells the user nothing about
+      // what to do next. Translate the two that actually happen.
+      function friendlyError(message) {
+        const text = String(message || '');
+        if (/\b429\b/.test(text) || /rate limit/i.test(text)) return t('errRateLimited');
+        if (/\b401\b|\b403\b/.test(text) && !/missing scopes/i.test(text)) return t('errAuth');
+        return text;
+      }
+
       // Models answer in Markdown, so render a small, safe subset of it.
       // Everything visible is added as a text node: replies quote device names
       // and tool output, none of which may ever be parsed as HTML.
@@ -791,8 +801,9 @@
         } catch (e) {
           typing.remove();
           const suffix = ' [' + elapsed() + 's]';
-          setStatus($('chatStatus'), t('errorPrefix') + (e.message || e) + suffix, 'err');
-          addMessage('system', t('wentWrong') + (e.message || e) + suffix);
+          const shown = friendlyError(e.message || String(e));
+          setStatus($('chatStatus'), t('errorPrefix') + shown + suffix, 'err');
+          addMessage('system', t('wentWrong') + shown + suffix);
           // Drop the failed turn from the history and restore the text so
           // retrying keeps a clean conversation.
           messages.pop();
