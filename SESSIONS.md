@@ -200,6 +200,61 @@ security-punten in de bijlage.
 
 ---
 
+## Sessie 9 — 2026-09-05 — v0.6.1: de app zweeg over zijn eigen blokkade
+
+Tarik meldde dat FlowMind "geen flows kan maken en het totaal niet goed ziet".
+Eén screenshot maakte alles duidelijk, en het waren twee problemen tegelijk.
+
+**Wat er te zien was.** Onderin de chat stond `basis — geen flow-schrijfsleutel`
+(er was dus geen `homeyApiKey` gezet), en toch was de assistent een webhook-flow
+voor de achtertuin aan het ontwerpen: hij vroeg welke event-naam en welke van de
+vijf achtertuinlampen uit moesten. Daaronder stond
+`HTTP 429: Rate limit exceeded ... [30s]` van het gratis Zen-model.
+
+**De echte fout.** Niets vertelde het model dát flow-schrijven geblokkeerd was —
+`SYSTEM_PROMPT` is een constante en alleen memories werden geïnjecteerd. Het
+model kon het pas ontdekken door een flow-tool aan te roepen, dus het voerde
+eerst een heel ontwerpgesprek en liep daarna pas tegen "Missing Scopes".
+
+**v0.6.1** (commit `c54f6f7`):
+- `HomeyContext.getFlowWriteStatus()` — verbindt indien nodig en meldt of
+  schrijven kan, met onderscheid tussen 'no_key' en 'key_failed' zodat een
+  gebruiker die de sleutel al heeft niet te horen krijgt "maak er een".
+- `runAssistant` zet die status in de systemprompt, met de opdracht het in de
+  eerste zin te zeggen en níét te gaan ontwerpen of doorvragen.
+- `executeTool` weigert de zes flow-schrijftools meteen (`FLOW_WRITING_TOOLS`)
+  in plaats van na een mislukte API-ronde.
+- `requestJson` wacht een 429 uit en probeert opnieuw; wachttijd uit
+  `Retry-After` of uit de `[30s]` in de melding, gecapt op 30s. Alleen 429.
+  Chat-beurten zijn achtergrondjobs dus het wachten is onzichtbaar;
+  flow-kaarten krijgen `retry: { attempts: 0 }` via `fromFlow: true`, want die
+  hebben dat tijdsbudget niet.
+- Settings-pagina vertaalt een overgebleven 429/401 naar een bruikbare zin
+  (nieuwe keys `errRateLimited`, `errAuth` in EN + NL).
+
+Geverifieerd met een scratch-script: 19 checks, inclusief echte sockets voor de
+retry (429→200, budget-cap, `attempts: 0`, 500 niet retryen) en de guard in
+beide faalmodi. `validate --level publish` slaagt, EN/NL-keys gelijk (66).
+
+**Bevestigd: de Missing Scopes-grens geldt voor élke client.** Om te helpen
+zonder sleutel is geprobeerd de gewenste webhook-flow zelf aan te maken via
+Athoms eigen Homey-MCP-connector — een compleet andere OAuth-client, met Tarik
+ingelogd. Resultaat: exact dezelfde **"Missing Scopes"**. Lezen en `start_flow`
+werken daar wél. Dat is dus geen FlowMind-bug en er is geen omweg; de les staat
+nu in `CLAUDE.md`.
+
+Uit de flows die daarvoor gelezen zijn (`webhook`, `achtertuin verlichting`)
+kwamen wel de echte kaart-ID's, mocht die flow later alsnog gebouwd worden:
+trigger `homey:manager:logic:webhook` (arg `event`), en de vier uit-kaarten
+`homey:device:{f3dfab30…,f6aa8538…,b1e74633…,2e2dd2ef…}:off`.
+
+**Openstaand:** Tarik moet zelf een Homey API-sleutel aanmaken
+(my.homey.app → Instellingen → Systeem → API-sleutels) en die in FlowMind
+plakken; tot dan blijft flow-schrijven geblokkeerd. Verder onveranderd: tests
+6/7/8, `check_flows` live, en de vier security-punten in de bijlage.
+
+---
+
 ## Bijlage — testgeschiedenis en openstaande security-punten
 
 Verplaatst uit `CLAUDE.md` op 2026-08-08. CLAUDE.md houdt de blijvende lessen,

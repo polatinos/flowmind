@@ -113,6 +113,12 @@ lib/
   workarounds gaat verzinnen.
 - Route op 2026-07-21 twee keer onafhankelijk live geverifieerd (connect →
   createFlow → delete slaagde met de sleutel).
+- **De beperking geldt voor élke OAuth-client, niet alleen voor apps.** Op
+  2026-09-05 leverde een `create_advanced_flow` via Athoms eigen Homey-MCP-
+  connector (een heel andere client, met de gebruiker ingelogd) exact dezelfde
+  **"Missing Scopes"** op. Lezen van flows/apparaten en `start_flow` werken
+  daar wél. Dus: geen enkele omweg via een andere client lost dit op, en het
+  is geen bug in FlowMind — de sleutel blijft de énige route.
 - Niet opnieuw proberen op te lossen met permissies in `app.json`: de complete
   lijst kent maar dertien permissies en `homey:manager:api` is de enige
   relevante.
