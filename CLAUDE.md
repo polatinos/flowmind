@@ -34,6 +34,22 @@ anders interactief, wat in een agent-sessie vastloopt).
 Er zijn geen unit tests; verifieer met `node --check <file>`, de validate
 hierboven, en waar mogelijk een echte API-call (Zen werkt zonder key).
 
+## Wat een web-sessie wél en niet kan (vastgesteld 2026-09-11)
+
+Claude Code op het web draait in een container achter een egress-proxy met een
+smalle host-lijst: GitHub en npm komen erdoor, het open web niet (`google.nl`
+en `home.nest.com` gaven 403 op CONNECT). Chromium ís geïnstalleerd — het is
+dus geen browserprobleem maar een netwerkpolicy, en `/root/.ccr/README.md`
+zegt expliciet die 403's te melden in plaats van te omzeilen. Daarbij deelt de
+gebruiker zijn browsersessies niet met de container, dus inloggen op zijn
+Google-/Nest-account kan hier per definitie niet.
+
+Gevolg voor het werk: **alles wat een ingelogde website vereist, gaat via
+Claude-in-Chrome of via Claude Code lokaal op Tariks laptop.** Beloof dus geen
+screenshots van my.homey.app of home.nest.com vanuit een web-sessie. Wat hier
+wél werkt: de repo bewerken, en de Homey uitlezen/aansturen via de
+Homey-connector (binnen de Missing Scopes-grenzen hieronder).
+
 ## Architectuur (kort)
 
 ```
@@ -119,6 +135,11 @@ lib/
   **"Missing Scopes"** op. Lezen van flows/apparaten en `start_flow` werken
   daar wél. Dus: geen enkele omweg via een andere client lost dit op, en het
   is geen bug in FlowMind — de sleutel blijft de énige route.
+- **Insights valt er ook onder.** Op 2026-09-11 gaf
+  `get_insights_log_entries_number` via diezelfde connector opnieuw
+  "Missing Scopes". Historie uitlezen kan dus alleen via de Homey-app zelf of
+  via FlowMind mét sleutel — handig om te weten bij het diagnosticeren van
+  "wanneer veranderde deze waarde?".
 - Niet opnieuw proberen op te lossen met permissies in `app.json`: de complete
   lijst kent maar dertien permissies en `homey:manager:api` is de enige
   relevante.

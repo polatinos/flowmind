@@ -377,6 +377,89 @@ tests" en wacht op Tariks besluit.
 
 ---
 
+## Sessie 10 — 2026-09-11 — geen code: de thermostaat die "uit zichzelf" stookte
+
+Geen regel aan FlowMind gewijzigd. Deze sessie ging over Tariks Homey zelf, en
+leverde vooral kennis op die anders opnieuw uitgezocht zou worden.
+
+**De klacht.** De Nest-thermostaat (Woonkamer,
+`3099be4f-674d-4039-97dd-822fdf32ae25`) ging af en toe uit het niets verwarmen.
+Hinderlijk, vooral voor Naomi, die er thuis mee zat.
+
+**Alle 39 flows nagelopen** (15 standaard + 24 advanced) op de thermostaat.
+Precies twee raken hem aan, samen drie schrijvende kaarten:
+
+- **`Thuiskomst Auto Nieuw`** (aan), rood blok "Verwarming gedeelte": bij
+  thuiskomst → *modus op Verwarmen* + *doeltemperatuur 23°*, maar alleen als
+  Naomi níét thuis is, eco aan staat en het binnen < 16 °C is.
+- **`Uit huis`** (aan): laatste persoon vertrekt → *Eco inschakelen*. Verlaagt
+  dus juist.
+
+Dat pleitte Homey vrij: het ging mis terwijl Naomi thuis wás, en de enige
+verwarmende flow vuurt alleen als ze weg is. Bovendien staat nergens in Homey
+de 16,5 °C die de thermostaat toonde — Homey zet alleen ooit 23.
+
+**Nest-kant opgevraagd** (door Tarik via Claude-in-Chrome, want deze omgeving
+komt niet op nest.com — zie hieronder). Daar zat de oorzaak:
+
+- **Het Nest-weekschema zelf**: elke dag 18:45 → 21 °C, zaterdag/zondag
+  19:15 → **24,5 °C**.
+- **True Radiant stond aan**: de cv begint uren vóór het schema-tijdstip te
+  stoken (max 5 uur 's nachts). Dát is het "uit het niets" — op het moment
+  zelf is er geen zichtbare aanleiding.
+- **Thuis/Afwezig flipte 3× op één dag**, waardoor eco er steeds afging en het
+  schema hervat werd terwijl er wel iemand thuis was.
+
+**Opgelost:** modus op **Uit**, True Radiant **uit**, Thuis/Afwezig **uit**
+(veiligheidstemperatuur 4,5 °C blijft actief). Het weekschema staat er nog
+ongewijzigd in.
+
+**Losse vondst met gevolgen: de Google Nest-koppeling in Homey was stuk.**
+`set_devices_capabilities_values` op de thermostaat gaf twee keer
+*"Dit apparaat is nu niet beschikbaar"*, terwijl `list_devices` een
+normaal ogende (maar verouderde) state teruggaf — de lijst is dus géén
+betrouwbare indicator voor beschikbaarheid. Na een herstart van de Nest-app
+door Tarik: `nest_thermostat_mode` sprong van `heat` naar `off` (de wijziging
+die net in Google was gemaakt), en een schrijfpoging leverde
+`ThermostatEco.SetMode ... [FAILED_PRECONDITION]` — een inhoudelijk antwoord
+van Google, dus de opdracht kwam aan. Koppeling hersteld.
+
+**Daardoor is één opruimklus urgent geworden:** zolang de koppeling stuk was,
+deed de 23°-kaart in `Thuiskomst Auto Nieuw` niets. Nu kan hij weer vuren.
+Die twee kaarten moeten eruit vóórdat de verwarming weer op Verwarmen gaat.
+
+**Overige apparaten met een verbindingsalarm** (`alarm_connectivity: true`):
+*Table lamp2 pro*, *Hoeklamp woonkamer*, *Bank led lichten lokaal* — alle drie
+Govee. *Voortuin verlichting* kwam er tijdens de sessie vanzelf weer bij, wat
+op een haperende Govee-cloud wijst. Verder: **deurbel op 9 % batterij** en de
+**luchtreiniger babykamer met een versleten filter** (`alarm_filter_life`).
+
+**Ook bevestigd: Insights valt óók onder Missing Scopes.**
+`get_insights_log_entries_number` via de Homey-connector gaf dezelfde fout als
+flow-schrijven. Insights uitlezen kan dus alleen via de Homey-app zelf, of via
+FlowMind mét API-sleutel.
+
+**Waarschuwing over deze werkomgeving.** De web-omgeving draait achter een
+egress-proxy die alleen een smalle lijst hosts doorlaat: GitHub en npm wel,
+`google.nl` en `home.nest.com` niet (403 op CONNECT; `/root/.ccr/README.md`
+zegt expliciet: niet omheen werken, melden). Chromium ís geïnstalleerd, dus het
+is geen browserprobleem maar een netwerkpolicy. Bovendien deelt de gebruiker
+zijn browsersessies niet met deze container, dus inloggen op zijn accounts kan
+hier sowieso niet. Praktisch: **alles wat een ingelogde website vereist, loopt
+via Claude-in-Chrome of via Claude Code lokaal op Tariks laptop.** Tarik laat de
+netwerkinstelling van de omgeving verruimen; dat geldt pas vanaf een nieuwe
+sessie.
+
+**Openstaand (onveranderd + nieuw):**
+1. `npx homey app install` en de Homey API-sleutel — zie sessie 9, stap voor stap.
+2. De twee verwarmingskaarten uit `Thuiskomst Auto Nieuw` verwijderen.
+3. Govee-app herstarten (drie lampen in storing).
+4. Deurbelbatterij, filter babykamer.
+5. Nest-weekschema opschonen als de verwarming weer aan gaat (die 24,5 °C).
+6. Tests 6/7/8, `check_flows` live, de vier security-punten in de bijlage.
+
+---
+
 ## Bijlage — testgeschiedenis en openstaande security-punten
 
 Verplaatst uit `CLAUDE.md` op 2026-08-08. CLAUDE.md houdt de blijvende lessen,
