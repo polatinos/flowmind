@@ -450,6 +450,13 @@ via Claude-in-Chrome of via Claude Code lokaal op Tariks laptop.** Tarik laat de
 netwerkinstelling van de omgeving verruimen; dat geldt pas vanaf een nieuwe
 sessie.
 
+**Aan het eind van de sessie opgelost:** Tarik heeft via Claude-in-Chrome de
+netwerkinstelling van de omgeving ("Default Cloud Environment", gedeeld met
+zijn andere repo's) van **Trusted** naar **Full** gezet — de opties waren None,
+Trusted, Full en Custom. Vanaf de eerstvolgende sessie kan een web-sessie dus
+het open web op. Inloggen op zijn accounts blijft onmogelijk; dat blijft
+Claude-in-Chrome of lokaal. Zie het bijgewerkte kopje in `CLAUDE.md`.
+
 **Openstaand (onveranderd + nieuw):**
 1. `npx homey app install` en de Homey API-sleutel — zie sessie 9, stap voor stap.
 2. De twee verwarmingskaarten uit `Thuiskomst Auto Nieuw` verwijderen.

@@ -34,20 +34,28 @@ anders interactief, wat in een agent-sessie vastloopt).
 Er zijn geen unit tests; verifieer met `node --check <file>`, de validate
 hierboven, en waar mogelijk een echte API-call (Zen werkt zonder key).
 
-## Wat een web-sessie wél en niet kan (vastgesteld 2026-09-11)
+## Wat een web-sessie wél en niet kan (bijgewerkt 2026-09-11)
 
-Claude Code op het web draait in een container achter een egress-proxy met een
-smalle host-lijst: GitHub en npm komen erdoor, het open web niet (`google.nl`
-en `home.nest.com` gaven 403 op CONNECT). Chromium ís geïnstalleerd — het is
-dus geen browserprobleem maar een netwerkpolicy, en `/root/.ccr/README.md`
-zegt expliciet die 403's te melden in plaats van te omzeilen. Daarbij deelt de
-gebruiker zijn browsersessies niet met de container, dus inloggen op zijn
-Google-/Nest-account kan hier per definitie niet.
+Claude Code op het web draait in een container achter een egress-proxy.
+**Netwerktoegang staat sinds 2026-09-11 op "Full"** (environment "Default Cloud
+Environment", gedeeld met Tariks andere repo's). Daarvóór stond hij op
+"Trusted": alleen GitHub en npm, de rest 403 op CONNECT. Sindsdien werkt het
+open web dus wél — websites lezen, pagina's renderen met het meegeleverde
+Chromium, API's aanroepen (bv. de Zen-modellenlijst live checken).
 
-Gevolg voor het werk: **alles wat een ingelogde website vereist, gaat via
-Claude-in-Chrome of via Claude Code lokaal op Tariks laptop.** Beloof dus geen
-screenshots van my.homey.app of home.nest.com vanuit een web-sessie. Wat hier
-wél werkt: de repo bewerken, en de Homey uitlezen/aansturen via de
+Krijg je tóch een 403/407 van de proxy, dan is dat een beleidsblokkade:
+`/root/.ccr/README.md` zegt expliciet die te melden in plaats van te omzeilen.
+
+**Wat ook met "Full" onmogelijk blijft: inloggen op Tariks accounts.** De
+container deelt geen browsersessies met hem, en er is geen scherm waarop hij
+een wachtwoord kan invoeren. `my.homey.app` en `home.nest.com` leveren dus een
+leeg inlogscherm op. Beloof daar geen screenshots van — dat loopt via
+Claude-in-Chrome (die zit ín zijn browser, met zijn sessies) of via Claude Code
+lokaal op zijn laptop. Diezelfde Claude-in-Chrome is ook de route gebleken voor
+het uitlezen van Nest-instellingen; dat werkte goed met een kant-en-klare
+prompt vanuit deze sessie.
+
+Wat hier wél werkt: de repo bewerken, en de Homey uitlezen/aansturen via de
 Homey-connector (binnen de Missing Scopes-grenzen hieronder).
 
 ## Architectuur (kort)
