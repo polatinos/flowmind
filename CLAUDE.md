@@ -279,19 +279,43 @@ sleutel. De chronologie van wat wél getest is staat in `SESSIONS.md`.
 - De use-case die er écht was (vertraagde acties) is sinds v0.5.3 opgelost
   met een tijdelijke flow.
 
-### Webterminal: de comment liegt
+### Webterminal: het is geen chatvenster, het is een huissleutel
 
-`lib/webTerminal.js` zegt "chat only, no secrets over this port". In
-werkelijkheid krijgt een token-houder op het LAN volledige huisbediening, álle
-memories en flow-beheer — over plain HTTP, met het token in de URL-query. Ga
-daar bij elke wijziging aan die server van uit.
+Een token-houder op het LAN krijgt via poort 8737 volledige huisbediening, álle
+memories en flow-beheer — over plain HTTP. Alleen de API-keys blijven erbuiten.
+Ga daar bij elke wijziging aan die server van uit; de comment bovenin
+`lib/webTerminal.js` zegt dat sinds v0.6.4 ook eerlijk (daarvóór stond er
+"chat only, no secrets", wat niet klopte).
+
+Wat er sinds v0.6.4 omheen staat — niet weghalen:
+- **Token niet meer leesbaar in de pagina.** De settings-link draagt het token
+  één keer als `?token=`; `GET /` wisselt het in voor een HttpOnly-cookie
+  (`SameSite=Strict`). De query authenticeert daarna niets meer — API-routes
+  accepteren alleen de cookie of de `X-FlowMind-Token`-header (die blijft voor
+  scripts op het LAN). localStorage bewaart geen token meer.
+- **Host-check vóór de auth-check**, tegen DNS-rebinding: IP-literals,
+  `localhost`, namen zonder punt en `.local/.lan/.home/.internal/.homey` mogen
+  erin, een publiek registreerbare naam niet.
+- **`POST` eist `application/json`** — een formulier van een andere site kan die
+  content-type niet zetten, dus samen met SameSite is cross-site posten dicht.
+- **Rate limit op `POST /api/chat`**: 8 beurten per minuut per client, 20
+  totaal, met `Retry-After`. Alleen chat; lezen blijft door.
+- **De body wordt gesnoeid** (`_chatBody`): alleen `messages` (max 40, rollen en
+  content gecoerced) plus een provider-id dat in `PROVIDERS` bestaat. `model`,
+  `maxSteps` en `fromFlow` komen uit settings, nooit van het LAN.
+
+Wat er níét mee opgelost is: het verkeer blijft plain HTTP, dus wie het netwerk
+kan meelezen leest het gesprek mee.
 
 **Kwaliteitslat:** het niveau van Magnus' Home Assistant-werk, vóór er over de
 App Store wordt nagedacht.
 
-De openstaande security-punten (Host-header-validatie, token uit de query,
-rate limiting op `/api/chat`, client-gekozen `provider`/`model` uit
-`startChat`, `.homeyignore`) staan met toelichting in `SESSIONS.md`.
+Van de security-review van 2026-07-22 is in v0.6.4 alles rond de webterminal
+afgehandeld (zie hierboven). Nog open: **geen `.homeyignore`**, waardoor
+`CLAUDE.md`, `.github` en `README` mee het App Store-pakket in gaan. En
+`startChat` accepteert nog steeds `provider`/`model`/`maxSteps` van zijn
+aanroeper — dat is nu alleen nog de instellingenpagina (vertrouwd, achter
+Homey's eigen auth); de webterminal snoeit ze er zelf uit.
 
 ## Werkwijze
 

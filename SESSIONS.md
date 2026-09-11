@@ -467,6 +467,58 @@ Claude-in-Chrome of lokaal. Zie het bijgewerkte kopje in `CLAUDE.md`.
 
 ---
 
+## Sessie 11 — 2026-09-11, avond — v0.6.4: de webterminal dichtgetimmerd
+
+Eerste sessie met netwerktoegang op **Full**: `example.com` geeft 200 en de
+Zen-modellenlijst kwam live binnen. Inloggen op Tariks accounts blijft
+onmogelijk — dat blijft Claude-in-Chrome of lokaal.
+
+Aangepakt: het enige echte gat uit de security-review van 2026-07-22. Poort
+8737 gaf een token-houder op het LAN volledige huisbediening, en de comment
+bovenin het bestand beweerde het tegendeel ("chat only, no secrets").
+
+**v0.6.4, alles in `lib/webTerminal.js`:**
+- **Token uit de pagina.** De settings-link draagt het token nog één keer als
+  `?token=`; `GET /` wisselt het meteen in voor een HttpOnly-cookie
+  (`SameSite=Strict`, 30 dagen). De query authenticeert daarna niets meer;
+  API-routes nemen alleen de cookie of de `X-FlowMind-Token`-header. Het
+  token staat niet meer in localStorage, en de pagina ruimt een oude kopie op.
+- **Host-check vóór de auth-check** tegen DNS-rebinding. IP-literals,
+  `localhost`, namen zonder punt en `.local/.lan/.home/.internal/.homey` mogen
+  erdoor; een publiek registreerbare naam niet.
+- **`POST` eist `application/json`.** Een formulier van een andere site kan die
+  content-type niet zetten, dus samen met SameSite is cross-site posten dicht.
+- **Rate limit op `POST /api/chat`:** 8 beurten per minuut per client, 20
+  totaal, `Retry-After` erbij. Alleen chat — lezen blijft werken terwijl er
+  geremd wordt, en een geweigerde beurt bereikt `startChat` niet.
+- **Body gesnoeid** (`_chatBody`): alleen `messages` (max 40, rollen en content
+  gecoerced) plus een provider-id dat écht in `PROVIDERS` staat. `model`,
+  `maxSteps` en `fromFlow` komen voortaan uit settings, nooit van het LAN.
+  Daarmee is ook het derde punt uit de review afgevangen, op de plek waar het
+  telt: `startChat` zelf accepteert ze nog, maar alleen nog van de
+  instellingenpagina, die achter Homey's eigen auth zit.
+- De comment bovenin zegt nu wat er werkelijk over die poort kan.
+
+**Geverifieerd met een probe tegen de échte server over echte sockets** (geen
+stubs, geen redenering): 42 checks, allemaal groen. Daarin onder meer een te
+kort token (dat `timingSafeEqual` zou laten gooien), een cookie tussen andere
+cookies, acht Host-varianten, `evil.com` mét geldig token, een `text/plain`-post
+en de negende beurt binnen een minuut. `validate --level publish` slaagt.
+
+**Nog open uit die review:** alleen `.homeyignore` — `CLAUDE.md`, `.github` en
+`README` gaan nu mee het App Store-pakket in.
+
+Onveranderd openstaand: de stappen uit sessie 9 (`app install`, de API-sleutel,
+`/session/me` live bevestigen), tests 6/7/8, `check_flows` live, en de vier
+Homey-klussen uit sessie 10 (verwarmingskaarten, Govee, deurbelbatterij,
+Nest-weekschema).
+
+Het probe-script stond weer in de scratch-map en is dus weg. Dat is nu de
+tweede keer; het besluit of dit soort verificatie in de repo hoort ligt nog
+steeds bij Tarik.
+
+---
+
 ## Bijlage — testgeschiedenis en openstaande security-punten
 
 Verplaatst uit `CLAUDE.md` op 2026-08-08. CLAUDE.md houdt de blijvende lessen,
@@ -528,14 +580,16 @@ Uitgevoerd terwijl de Homey offline was; bevindingen met "bewezen" zijn lokaal
 nagespeeld met Node, niet beredeneerd. De `run_script`-conclusie staat in
 `CLAUDE.md`, want die is blijvend.
 
-- **Webterminal.** Comment eerlijk maken, `Host`-header valideren tegen
-  DNS-rebinding, token liever niet in de URL-query laten staan.
-- **Geen rate limiting op `/api/chat`** → een token-houder kan turns in een lus
-  vuren (kost API-credits, belast de Homey).
-- **`startChat` accepteert `provider`/`model` van de client** — onnodig; haal ze
-  uit settings.
+- ~~**Webterminal.** Comment eerlijk maken, `Host`-header valideren tegen
+  DNS-rebinding, token liever niet in de URL-query laten staan.~~ Opgelost in
+  v0.6.4 (sessie 11).
+- ~~**Geen rate limiting op `/api/chat`** → een token-houder kan turns in een lus
+  vuren (kost API-credits, belast de Homey).~~ Opgelost in v0.6.4.
+- ~~**`startChat` accepteert `provider`/`model` van de client** — onnodig; haal ze
+  uit settings.~~ Afgevangen in v0.6.4 op de webterminal-grens; `startChat`
+  accepteert ze nog van de instellingenpagina, die vertrouwd is.
 - **Geen `.homeyignore`** → `CLAUDE.md`, `.github` en `README` gaan mee het App
-  Store-pakket in.
+  Store-pakket in. **Nog open.**
 
 Geverifieerd in orde: geen secrets in de git-historie (`.gitignore` heeft
 backstops); XSS correct afgehandeld (webterminal bouwt alles met `textContent`,
