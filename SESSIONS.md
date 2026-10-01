@@ -280,6 +280,20 @@ niet). Een officiële Homey-app die een YouTube-link op een LG-tv opent, bestaat
 niet. Een "Webhooks"-overzichtsflow (alleen notities) is besproken, maar bewust
 nog niet aangemaakt.
 
+**Kantoor uitgebreid (einde middag).** Een Aqara-deursensor P2 (Thread) werkt via
+Matter, met de Aqara Hub M3 als Thread Border Router: de koppelcode uit de
+Aqara-app ingevoerd in Homey. De sirene en het alarm van de M3 worden via Matter
+niet doorgegeven. Verder kwam er een SwitchBot Bot via Bluetooth bij. Claude
+installeerde de Eufy Security-app met `api.apps.installFromAppStore`; de HomeBase
+en 3 camera's staan erin. Het kantooralarm wordt de eerste grote advanced-flow
+test voor FlowMind, met Google-speakers in het hoofdkantoor, omdat de HomeBase
+daar niet staat.
+
+**Gezien thuis:** alle 6 Eufy-apparaten zijn onbereikbaar voor Homey ("Device
+Serial niet gevonden"). Waarschijnlijk is de inlog van de Eufy-app verlopen.
+Tarik logt thuis opnieuw in. Dat `check_flows` niet naar de beschikbaarheid van
+apparaten kijkt, is een gat in FlowMind.
+
 **Volgende sessie (thuis):** v0.6.2 op de Pro installeren (alleen op het LAN),
 de Anthropic-sleutel laten plakken, en FlowMind de review-vraag stellen zonder
 hint. Het antwoord scoren tegen de referentielijst en daarna FlowMind
