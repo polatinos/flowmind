@@ -519,6 +519,46 @@ steeds bij Tarik.
 
 ---
 
+## Sessie 11 — 2026-10-01 — OPEN: inloggen op de kantoor-Homey lukt niet
+
+Afgebroken sessie, niets aan de code gedaan. Tarik zat op kantoor, waar een
+Homey met een Homey Bridge staat. Dat ging goed tot zijn **laptop uitviel**;
+sindsdien komt hij er niet meer in.
+
+**Het symptoom.** Op de laptop vraagt "Homey kantoor" om een login. Hij vult
+`tarik-polat@live.nl` + zijn wachtwoord in en krijgt elke keer *"fout"* — terwijl
+hij zich op zijn telefoon in de Homey-app net nog heeft uit- én weer ingelogd
+met diezelfde gegevens, en dát werkte wel.
+
+**Vastgesteld via de Homey-connector:** `list_homeys` geeft alleen
+`Homey Pro van Tarik` (`657064bd17f3e94311a87443`). Onder het account dat aan
+deze sessie hangt bestaat dus **geen kantoor-Homey**. Die hoort bij een ander
+account, of Tarik is er nog niet als gebruiker aan toegevoegd. Ook ná een
+geslaagde login zou hij hem dan niet zien.
+
+**Advies dat al gegeven is (nog niet teruggekoppeld of het hielp):**
+1. Stoppen met proberen — Athom blokkeert tijdelijk na een paar mislukte
+   pogingen en blijft dan "fout" melden bij een correct wachtwoord. 15 min wachten.
+2. Toetsenbordindeling en Caps Lock controleren; na een herstart staat die
+   nogal eens op US, wat `@ " - /` verandert. Wachtwoord zichtbaar in Kladblok
+   typen en plakken.
+3. Lukt het dan nog niet: wachtwoord resetten via `my.homey.app` op de telefoon,
+   waar hij al is ingelogd.
+4. Los daarvan het accountpunt hierboven: de eigenaar moet zijn e-mailadres bij
+   die Homey toevoegen (Homey-app → Gebruikers), of hij moet een kantooraccount
+   gebruiken.
+
+**Nog onbeantwoord — als eerste vragen bij het hervatten:** wáár vraagt dat
+inlogscherm om de login? In de Homey-app op de laptop, in de browser op
+`my.homey.app`, of in een terminal (`homey login`)? Bij een terminal is het een
+ander verhaal: tweestapsverificatie werkt daar vaak niet en de login moet dan
+via de browser.
+
+**FlowMind zelf staat ongewijzigd op v0.6.4**; de openstaande punten uit sessie
+10 en 11 hierboven gelden onverkort.
+
+---
+
 ## Bijlage — testgeschiedenis en openstaande security-punten
 
 Verplaatst uit `CLAUDE.md` op 2026-08-08. CLAUDE.md houdt de blijvende lessen,
