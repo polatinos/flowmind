@@ -1,6 +1,6 @@
 {
   "id": "nl.polatinos.flowmind",
-  "version": "0.6.0",
+  "version": "0.6.1",
   "compatibility": ">=8.1.4",
   "sdk": 3,
   "platforms": ["local"],

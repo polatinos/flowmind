@@ -18,6 +18,21 @@ const SETTINGS = {
   WEB_TERMINAL: 'webTerminalEnabled',
 };
 
+// Provider id -> settings key, for clearing a key from the settings page.
+const PROVIDER_KEY_SETTINGS = {
+  zen: SETTINGS.ZEN_KEY,
+  anthropic: SETTINGS.ANTHROPIC_KEY,
+  openai: SETTINGS.OPENAI_KEY,
+  gemini: SETTINGS.GEMINI_KEY,
+  compatible: SETTINGS.COMPATIBLE_KEY,
+};
+
+// Shape of a Homey API key ("<uuid>:<uuid>:<hex>"). Such a key must never be
+// stored as an AI-provider key: it would be sent to that provider on every chat.
+const UUID = '[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}';
+const HOMEY_API_KEY_RE = new RegExp(`^${UUID}:${UUID}:[0-9a-f]+$`, 'i');
+const looksLikeHomeyApiKey = (value) => HOMEY_API_KEY_RE.test(String(value || '').trim());
+
 // The free, one-key OpenCode Zen (Big Pickle) option is the default so the app
 // is usable out of the box, like the Home Assistant "opencode" add-on.
 const DEFAULT_PROVIDER = 'zen';
@@ -157,6 +172,20 @@ module.exports = class FlowMindApp extends Homey.App {
    * user can update the model/provider without re-entering a key.
    */
   async saveConfig(body = {}) {
+    const keyFields = {
+      zenApiKey: SETTINGS.ZEN_KEY,
+      anthropicApiKey: SETTINGS.ANTHROPIC_KEY,
+      openaiApiKey: SETTINGS.OPENAI_KEY,
+      geminiApiKey: SETTINGS.GEMINI_KEY,
+      compatibleApiKey: SETTINGS.COMPATIBLE_KEY,
+    };
+    // Check before writing anything, so a rejected save leaves no half state.
+    for (const field of Object.keys(keyFields)) {
+      if (typeof body[field] === 'string' && looksLikeHomeyApiKey(body[field])) {
+        throw new Error(this.homey.__('settings.keyIsHomeyKey'));
+      }
+    }
+
     if (typeof body.provider === 'string') {
       this.homey.settings.set(SETTINGS.PROVIDER, body.provider);
     }
@@ -171,17 +200,14 @@ module.exports = class FlowMindApp extends Homey.App {
       if (body.webTerminalEnabled) this._webTerminal.start();
       else this._webTerminal.stop();
     }
-    const keyFields = {
-      zenApiKey: SETTINGS.ZEN_KEY,
-      anthropicApiKey: SETTINGS.ANTHROPIC_KEY,
-      openaiApiKey: SETTINGS.OPENAI_KEY,
-      geminiApiKey: SETTINGS.GEMINI_KEY,
-      compatibleApiKey: SETTINGS.COMPATIBLE_KEY,
-    };
     for (const [field, key] of Object.entries(keyFields)) {
       if (typeof body[field] === 'string' && body[field].trim()) {
         this.homey.settings.set(key, body[field].trim());
       }
+    }
+    // An empty field means "keep the key", so clearing needs its own request.
+    if (Object.prototype.hasOwnProperty.call(PROVIDER_KEY_SETTINGS, body.clearProviderKey)) {
+      this.homey.settings.unset(PROVIDER_KEY_SETTINGS[body.clearProviderKey]);
     }
 
     // The Homey API key unlocks flow creation (the app token lacks that

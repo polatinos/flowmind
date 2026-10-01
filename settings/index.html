@@ -255,6 +255,11 @@
     let sending = false;
     let currentCfg = null;
     const FREE_PROVIDERS = new Set(['zen']);
+    // Providers with a key field "<id>ApiKey"; each gets its own remove button.
+    const PROVIDER_KEY_IDS = ['zen', 'anthropic', 'openai', 'gemini', 'compatible'];
+    // Same check as app.js: a Homey API key must not land in an AI-provider field.
+    const UUID = '[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}';
+    const HOMEY_API_KEY_RE = new RegExp('^' + UUID + ':' + UUID + ':[0-9a-f]+$', 'i');
 
     function onHomeyReady(Homey) {
       Homey.ready();
@@ -410,6 +415,7 @@
           modelInput.value = cfg.model || '';
           $('compatibleBaseUrl').value = cfg.compatibleBaseUrl || '';
           updateHomeyKeyStatus(cfg.homeyApi || {});
+          updateKeyRemoveButtons(cfg);
           updateConnStatus(cfg.homeyApi || {});
           updateWebTerminal(cfg.webTerminal || {});
           updateModelPlaceholder(cfg);
@@ -495,6 +501,33 @@
           setStatus($('settingsStatus'), t('saveFailed') + (e.message || e), 'err');
         }
       };
+
+      // An empty field keeps the stored key, so every provider key needs its
+      // own remove button; it only shows while that key is actually set.
+      function updateKeyRemoveButtons(cfg) {
+        PROVIDER_KEY_IDS.forEach((id) => {
+          let btn = $(id + 'KeyRemoveBtn');
+          if (!btn) {
+            btn = document.createElement('button');
+            btn.id = id + 'KeyRemoveBtn';
+            btn.type = 'button';
+            btn.className = 'danger';
+            btn.textContent = t('homeyKeyRemove');
+            btn.onclick = async () => {
+              setStatus($('settingsStatus'), t('saving'));
+              try {
+                await api('PUT', '/config', { clearProviderKey: id });
+                setStatus($('settingsStatus'), t('saved'), 'ok');
+                await loadConfig();
+              } catch (e) {
+                setStatus($('settingsStatus'), t('saveFailed') + (e.message || e), 'err');
+              }
+            };
+            $(id + 'ApiKey').insertAdjacentElement('afterend', btn);
+          }
+          btn.style.display = cfg.keysSet && cfg.keysSet[id] ? '' : 'none';
+        });
+      }
 
       function updateModelPlaceholder(cfg) {
         const p = (cfg.providers || []).find((x) => x.id === providerSel.value);
@@ -588,6 +621,11 @@
       });
 
       $('saveBtn').onclick = async () => {
+        // Quick feedback; app.js rejects the same thing server-side.
+        if (PROVIDER_KEY_IDS.some((id) => HOMEY_API_KEY_RE.test($(id + 'ApiKey').value.trim()))) {
+          setStatus($('settingsStatus'), t('keyIsHomeyKey'), 'err');
+          return;
+        }
         setStatus($('settingsStatus'), t('saving'));
         try {
           await api('PUT', '/config', {

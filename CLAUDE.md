@@ -71,6 +71,20 @@ lib/
   "opschonen" naar https-only.
 - `homey-api` staat via de lockfile op **3.17.3**; 3.19+ eist Node ≥ 24 en de
   Homey-runtime is ouder. Niet blind updaten.
+- **Een Homey-sleutel mag nooit in een AI-sleutelveld belanden.** Die gaat bij
+  elke chat mee naar de provider. Sinds v0.6.1 weigert `saveConfig` waarden met
+  de vorm `uuid:uuid:hex`, en elk sleutelveld heeft een eigen wisknop, omdat een
+  leeg veld "behouden" betekent. Geef een nieuw sleutelveld dezelfde check en
+  dezelfde knop.
+
+### Twee Homeys: thuis (Pro) en kantoor (Self-Hosted Server)
+- Kantoor = Homey Self-Hosted Server op `home-kantoor` (192.168.68.106). De
+  lokale API draait daar op poort **4859**, niet op 80. `getLocalAddress()`
+  geeft het adres mét poort, dus de API-sleutel-route werkt ongewijzigd.
+- Testen kan op kantoor rustiger: weinig apparaten en geen SOS-flow. Installeren
+  met `npx homey select --name "Homey Self-Hosted Server"`. **Zet de CLI terug
+  op "Homey Pro van Tarik"** voordat je thuis installeert.
+- De Homey-koppeling in Claude (MCP) ziet alleen de Pro.
 
 ### Homey App Store
 - **"Homey" mag niet in de appnaam** (Athom-richtlijn). Vandaar FlowMind.

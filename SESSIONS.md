@@ -200,6 +200,44 @@ security-punten in de bijlage.
 
 ---
 
+## Sessie 9 — 2026-10-01 — tweede Homey op kantoor, v0.6.1
+
+**Kantoor-Homey als testomgeving.** Naast de Homey Pro thuis heeft Tarik een
+**Homey Self-Hosted Server** op kantoor (oude Toshiba-laptop, Ubuntu 24.04,
+`home-kantoor`). Lokale API op poort **4859** in plaats van 80. Er staan 10
+apparaten en 2 advanced flows op, en er draait niets veiligheidskritisch, dus
+het is een rustiger testbed dan thuis (geen SOS-flow, geen geheugendruk).
+De Homey-koppeling in Claude (MCP) ziet alleen de Pro; Claude werkt op kantoor
+via een eigen API-sleutel ("Claude", buiten de repo opgeslagen).
+
+- FlowMind v0.6.0 geïnstalleerd met `homey app install` (CLI via
+  `homey select` op de SHS gezet). Draait, ~75 MB.
+- Eigen sleutel "flowmind kantoor" in FlowMind gezet → `homeyApi.mode: 'local'`.
+  `getLocalAddress()` levert op SHS dus het adres mét poort; de bestaande
+  adreslogica werkt zonder aanpassing.
+
+**Incident → v0.6.1.** De Homey-sleutel belandde eerst in het **Zen**-veld.
+Bij de volgende chat was hij naar opencode.ai gegaan. Tarik kon hem niet zelf
+wissen: `saveConfig` negeert lege sleutelvelden en alleen de Homey-sleutel had
+een verwijderknop. Claude heeft hem met Tariks akkoord via `unsetAppSetting`
+weggehaald (er was nog niet gechat).
+
+- Elke AI-sleutel heeft nu een eigen "Verwijder sleutel"-knop
+  (`clearProviderKey`), alleen zichtbaar als die sleutel gezet is.
+- Een waarde met de vorm van een Homey-sleutel (`uuid:uuid:hex`) wordt in elk
+  AI-veld geweigerd: client-side direct, en server-side vóór er iets wordt
+  weggeschreven.
+- Live getest op kantoor met nepwaarden: de nep-Homey-sleutel werd geweigerd
+  (HTTP 500 met melding, ook `model` niet opgeslagen), en een dummy Zen-sleutel
+  kon gezet en weer gewist worden.
+
+**Gezien in de kantoor-flows** (niet aangepast): "Waarschuwingen Webhooks"
+vuurt bij de brievenbus-trilsensor op zowel tilt als trilling, wat waarschijnlijk
+een dubbele kritieke push per opening geeft, zonder cooldown. Die flow hangt ook
+aan de webhooks `cbr-saldo-negatief` en `crm-storing`.
+
+---
+
 ## Bijlage — testgeschiedenis en openstaande security-punten
 
 Verplaatst uit `CLAUDE.md` op 2026-08-08. CLAUDE.md houdt de blijvende lessen,
