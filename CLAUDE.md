@@ -92,6 +92,9 @@ lib/
   met `npx homey select --name "Homey Self-Hosted Server"`. **Zet de CLI terug
   op "Homey Pro van Tarik"** voordat je thuis installeert.
 - De Homey-koppeling in Claude (MCP) ziet alleen de Pro.
+- **`homey app install` werkt alleen op hetzelfde LAN** ("seems to be offline.
+  Are you sure you're in the same local network?"). Op afstand installeren kan
+  niet via de CLI. Lezen via de cloud (MCP) kan wél.
 
 ### Homey App Store
 - **"Homey" mag niet in de appnaam** (Athom-richtlijn). Vandaar FlowMind.

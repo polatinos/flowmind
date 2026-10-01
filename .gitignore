@@ -1,3 +1,5 @@
+# Notes about Tarik's own home (flow reviews, test baselines) — never public.
+private/
 node_modules/
 .homeybuild/
 .homeycompose/
