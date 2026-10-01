@@ -95,6 +95,11 @@ lib/
 - **`homey app install` werkt alleen op hetzelfde LAN** ("seems to be offline.
   Are you sure you're in the same local network?"). Op afstand installeren kan
   niet via de CLI. Lezen via de cloud (MCP) kan wél.
+- **Op afstand de API van thuis:** de thuis-API-sleutel werkt ook via de
+  cloud-relay, met `address: 'https://<homeyId>.connect.athom.com'`. Gebruik
+  het LAN-adres `192.168.68.130` nooit als Tarik niet thuis is: kantoor (en
+  vakantieadressen) gebruiken hetzelfde 192.168.68.0/24-bereik. De MCP-koppeling
+  kan flows lezen, maar krijgt "Missing Scopes" bij aanmaken.
 
 ### Homey App Store
 - **"Homey" mag niet in de appnaam** (Athom-richtlijn). Vandaar FlowMind.
@@ -223,8 +228,11 @@ die daaruit volgden:
 
 **Openstaande tests:** 6 (`ai_do`/`ai_ask` flow-kaarten, risico: flow-timeout
 bij `maxSteps: 6`), 7 (Insights), 8 (Moods — `moods.setMood` nooit live
-getest), `check_flows` zelf, en de minimale API-sleutel-scopes met een smallere
-sleutel. De chronologie van wat wél getest is staat in `SESSIONS.md`.
+getest), `check_flows` op een echt probleem (draaide op kantoor zonder fouten,
+maar daar was niets kapot; de Dyson-kaart thuis is de echte test), de
+flow-review thuis tegen `private/referentielijst-thuis-2026-10-01.md`, en de
+minimale API-sleutel-scopes met een smallere sleutel. De chronologie van wat wél
+getest is staat in `SESSIONS.md`.
 
 ### `run_script` is verwijderd in v0.5.5 — niet terugbouwen
 - **Bewezen:** Node's `vm` is géén sandbox. Met exact de context-vorm uit

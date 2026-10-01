@@ -251,7 +251,39 @@ alleen nog toe vanuit hun eigen client (zie CLAUDE.md). Tarik kiest Anthropic.
   van twee keer.
 - Webterminal aangezet op kantoor: `192.168.68.106:8737` is bereikbaar op het
   LAN (403 zonder token). Hij werkt dus ook vanuit de SHS-container.
-- Nog niet live getest met een echte Anthropic-sleutel: die maakt Tarik zelf.
+- Live getest met Tariks eigen Anthropic-sleutel: een vraag die alleen uitleest
+  kwam in 8 s terug, en het antwoord klopte met de Homey zelf. Daarna bouwde
+  FlowMind op kantoor een echte flow (kubus schudden → push). Gecontroleerd tegen
+  de API: de kaarten bestaan echt, de melding kwam binnen, en verwijderen ging
+  mét een automatische back-up. v0.6.1 en v0.6.2 staan op `origin/main`.
+
+**Is FlowMind slim genoeg voor flow-reviews?** Zonder hint gevraagd om de
+kantoor-flows te beoordelen. In 55 s vond hij de dubbele brievenbusmelding, en
+ook punten die Claude Code had gemist (vertraging die doorloopt na "uit", een
+SwitchBot-kaart als enkel faalpunt, kritieke meldingen 's nachts). Alles klopte
+na controle, en hij heeft niets gewijzigd. Risico bij grote huizen: flows worden
+één voor één en als ruwe data (ID's zonder namen) gelezen, met maximaal 10
+stappen per vraag. Of hij thuis ook goed is, moet de test daar uitwijzen.
+
+**Referentielijst thuis.** Claude Code heeft alle 42 flows thuis via de cloud
+gelezen (alleen lezen) en 18 bevindingen vastgelegd in
+`private/referentielijst-thuis-2026-10-01.md`. Die map staat in `.gitignore`,
+want hij bevat details over het huis. De lijst is de maatstaf voor de
+FlowMind-test thuis. Belangrijkste punten: de drie alarmflows staan uit, terwijl
+de pauze- en hervatflows nog "alarm ingeschakeld" melden. Bij de SOS-flow hangt
+de waarschuwing thuis achter één CallMeBot-call, en het is onduidelijk wie de
+webhook nog stuurt. Tarik heeft namelijk geen Home Assistant meer; alleen Ali
+heeft er een. Verder zitten 7 verwijderde apparaten nog in 9 flows.
+
+**Overig.** De LG-tv en de LG ThinQ-app zijn van de kantoor-Homey gehaald (werkten
+niet). Een officiële Homey-app die een YouTube-link op een LG-tv opent, bestaat
+niet. Een "Webhooks"-overzichtsflow (alleen notities) is besproken, maar bewust
+nog niet aangemaakt.
+
+**Volgende sessie (thuis):** v0.6.2 op de Pro installeren (alleen op het LAN),
+de Anthropic-sleutel laten plakken, en FlowMind de review-vraag stellen zonder
+hint. Het antwoord scoren tegen de referentielijst en daarna FlowMind
+verbeteren voor veel flows.
 
 ---
 
