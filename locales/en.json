@@ -56,7 +56,6 @@
     "chatPlaceholder": "E.g. 'Set the living room lights to 40%' or 'Create an advanced flow that…'",
     "send": "Send",
     "thinking": "FlowMind is thinking and performing actions…",
-    "errorPrefix": "Error: ",
     "wentWrong": "Something went wrong: ",
     "actionsDone": "__count__ action(s) performed",
     "newChat": "New conversation started.",

@@ -56,7 +56,6 @@
     "chatPlaceholder": "Bijv. 'Zet de lampen in de woonkamer op 40%' of 'Maak een advanced flow die…'",
     "send": "Stuur",
     "thinking": "FlowMind denkt na en voert acties uit…",
-    "errorPrefix": "Fout: ",
     "wentWrong": "Er ging iets mis: ",
     "actionsDone": "__count__ actie(s) uitgevoerd",
     "newChat": "Nieuw gesprek gestart.",

@@ -80,6 +80,7 @@
     .msg.user::before { content: "❯ "; }
     .msg.assistant { align-self: stretch; color: var(--text); }
     .msg.system { align-self: flex-start; color: var(--muted); font-size: 12px; }
+    .msg.system.err { color: var(--danger); }
     /* Rendered Markdown (assistant replies only): blocks handle the line
        breaks, so pre-wrap would double the spacing. */
     .msg.md { white-space: normal; }
@@ -829,8 +830,9 @@
         } catch (e) {
           typing.remove();
           const suffix = ' [' + elapsed() + 's]';
-          setStatus($('chatStatus'), t('errorPrefix') + (e.message || e) + suffix, 'err');
-          addMessage('system', t('wentWrong') + (e.message || e) + suffix);
+          // One place for the error: in the conversation, in red.
+          setStatus($('chatStatus'), '', '');
+          addMessage('system', t('wentWrong') + (e.message || e) + suffix).classList.add('err');
           // Drop the failed turn from the history and restore the text so
           // retrying keeps a clean conversation.
           messages.pop();

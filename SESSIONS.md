@@ -236,6 +236,23 @@ vuurt bij de brievenbus-trilsensor op zowel tilt als trilling, wat waarschijnlij
 een dubbele kritieke push per opening geeft, zonder cooldown. Die flow hangt ook
 aan de webhooks `cbr-saldo-negatief` en `crm-storing`.
 
+**Zen dicht → v0.6.2.** De eerste chat op kantoor faalde met `403
+FreeTierError`. Rechtstreeks nagespeeld: OpenCode laat de gratis Zen-modellen
+alleen nog toe vanuit hun eigen client (zie CLAUDE.md). Tarik kiest Anthropic.
+
+- `anthropic.js`: default `claude-opus-5-5` (lijst: Opus 5.5, Sonnet 5.5,
+  Haiku 4.5). `max_tokens` van 4096 naar 16000, omdat de nieuwe modellen altijd
+  denken en dat telt mee. `fallbacks: "default"` voor de modellen die dat
+  kennen, nette melding bij `stop_reason: "refusal"`, en top-level
+  `cache_control` (systeemprompt + tools zijn gelijk in de hele tool-loop).
+  De loop is append-only, en eerdere beurten gaan zonder thinking-blocks mee,
+  dus de preserved-thinking-check van nieuwe accounts gaat niet af.
+- Chat-UI: een fout staat nu één keer in beeld (rood, in het gesprek) in plaats
+  van twee keer.
+- Webterminal aangezet op kantoor: `192.168.68.106:8737` is bereikbaar op het
+  LAN (403 zonder token). Hij werkt dus ook vanuit de SHS-container.
+- Nog niet live getest met een echte Anthropic-sleutel: die maakt Tarik zelf.
+
 ---
 
 ## Bijlage — testgeschiedenis en openstaande security-punten

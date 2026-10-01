@@ -59,8 +59,15 @@ lib/
 - Base URL `https://opencode.ai/zen/v1`, endpoint `/chat/completions`.
 - Model-ID's zijn **kaal**: `big-pickle` — het `opencode/`-prefix uit de docs
   wordt door de API geweigerd ("Model not supported").
-- Gratis modellen werken momenteel **zonder API-key** → key is `keyOptional`
-  in `PROVIDERS`; niet opnieuw verplicht maken.
+- **Gratis zonder sleutel werkt NIET meer** (vastgesteld 2026-10-01). Elk gratis
+  model geeft `403 FreeTierError: "free tier can only be used from within
+  OpenCode"`. Buiten OpenCode's eigen client is alleen een betaalde Zen-sleutel
+  nog mogelijk. Niet omzeilen door OpenCode na te bootsen (User-Agent e.d.):
+  dat gaat tegen hun regels in.
+- **Open punt:** FlowMind heeft Zen nog als default met `keyOptional: true`,
+  en de teksten beloven "gratis, geen sleutel nodig". Default, `keyOptional`
+  en die teksten moeten nog worden aangepast; dat is een productkeuze voor
+  Tarik.
 - Modellenlijst live checken: `GET https://opencode.ai/zen/v1/models`.
 
 ### Providers
