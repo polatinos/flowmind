@@ -294,6 +294,13 @@ Serial niet gevonden"). Waarschijnlijk is de inlog van de Eufy-app verlopen.
 Tarik logt thuis opnieuw in. Dat `check_flows` niet naar de beschikbaarheid van
 apparaten kijkt, is een gat in FlowMind.
 
+**2026-10-03, thuis (alleen kijken, het gezin sliep of zat beneden).** FlowMind
+thuis draait nog op v0.5.4. Installeren van v0.6.2 lukte niet: de pc ziet de
+Homey niet op het LAN (vermoedelijk Deco-apparaatisolatie), en via de
+cloud-relay geeft de devkit-upload een 400. Er is niets veranderd. Eufy thuis is
+nog steeds onbereikbaar. Op verzoek van Tarik geen haast: dit gebeurt een andere
+dag.
+
 **Volgende sessie (thuis):** v0.6.2 op de Pro installeren (alleen op het LAN),
 de Anthropic-sleutel laten plakken, en FlowMind de review-vraag stellen zonder
 hint. Het antwoord scoren tegen de referentielijst en daarna FlowMind

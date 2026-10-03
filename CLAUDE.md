@@ -76,8 +76,10 @@ lib/
   mislukte beurt.
 - `http.js` ondersteunt bewust ook `http://` (Ollama op LAN). Niet
   "opschonen" naar https-only.
-- `homey-api` staat via de lockfile op **3.17.3**; 3.19+ eist Node ≥ 24 en de
-  Homey-runtime is ouder. Niet blind updaten.
+- `homey-api` staat via de lockfile op **3.17.3**; 3.19+ eist Node ≥ 24. De
+  Homey Pro thuis draait sinds firmware 13.5.1 wél Node 24 (gezien 2026-10-03).
+  Maar FlowMind belooft `compatibility >=8.1.4`, dus gebruikers op oudere
+  firmware vallen dan om. Niet blind updaten.
 - **Een Homey-sleutel mag nooit in een AI-sleutelveld belanden.** Die gaat bij
   elke chat mee naar de provider. Sinds v0.6.1 weigert `saveConfig` waarden met
   de vorm `uuid:uuid:hex`, en elk sleutelveld heeft een eigen wisknop, omdat een
@@ -100,6 +102,16 @@ lib/
   het LAN-adres `192.168.68.130` nooit als Tarik niet thuis is: kantoor (en
   vakantieadressen) gebruiken hetzelfde 192.168.68.0/24-bereik. De MCP-koppeling
   kan flows lezen, maar krijgt "Missing Scopes" bij aanmaken.
+- **Apps installeren via de cloud-relay kan niet.** `POST /api/manager/devkit/`
+  (wat `homey app install` doet) geeft via `connect.athom.com` een 400. App
+  Store-apps installeren met `apps.installFromAppStore` werkt wel.
+- **Thuis ziet de pc de Homey niet op het LAN** (2026-10-03): de router is
+  bereikbaar, de MAC van de Homey verschijnt niet in ARP, en dat terwijl ze
+  allebei op SSID "PolatinosTP" zitten (Deco M9 Plus-mesh, achter een tweede
+  router 192.168.1.1). Vermoedelijk apparaatisolatie in de Deco-app; de
+  webinterface toont alleen Status en Systeem. Mogelijk ooit bewust aangezet.
+  Installeren thuis vraagt dus eerst een netwerkkabel of een tijdelijke
+  uitzondering.
 
 ### Homey App Store
 - **"Homey" mag niet in de appnaam** (Athom-richtlijn). Vandaar FlowMind.
