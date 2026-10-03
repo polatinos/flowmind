@@ -276,7 +276,19 @@ App Store wordt nagedacht.
 
 De openstaande security-punten (Host-header-validatie, token uit de query,
 rate limiting op `/api/chat`, client-gekozen `provider`/`model` uit
-`startChat`, `.homeyignore`) staan met toelichting in `SESSIONS.md`.
+`startChat`) staan met toelichting in `SESSIONS.md`.
+
+### `.homeyignore` houdt notities en privédata uit het app-pakket
+- Sinds 2026-10-03 houdt `.homeyignore` `private/`, `docs/`, `CLAUDE.md`,
+  `AGENTS.md`, `SESSIONS.md` en `README.md` buiten het pakket. Dotfiles slaat
+  de CLI zelf al over.
+- Daarvóór ging alles mee, ook `private/` met details over Tariks huis. Een
+  `homey app publish` had dat openbaar gemaakt.
+- Komt er een nieuwe map of notitie bij: zet hem erin, en kijk na een
+  `homey app build` in `.homeybuild/` wat er echt meegaat.
+- Codex leest deze CLAUDE.md, omdat er geen `AGENTS.md` in het project staat
+  (globale regel). Maak geen losse kopie als AGENTS.md: die raakt uit de pas en
+  krijgt bij Codex voorrang.
 
 ## Werkwijze
 

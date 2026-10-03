@@ -301,6 +301,15 @@ cloud-relay geeft de devkit-upload een 400. Er is niets veranderd. Eufy thuis is
 nog steeds onbereikbaar. Op verzoek van Tarik geen haast: dit gebeurt een andere
 dag.
 
+**AGENTS.md en `.homeyignore`.** Er stond een onbekende `AGENTS.md`. Die was op
+2026-10-02 gemaakt, vermoedelijk door Codex, en was een hernoemde kopie van
+CLAUDE.md (al verouderd). Op Tariks verzoek is hij verwijderd: Codex leest
+CLAUDE.md volgens de globale regel. Bij het uitzoeken bleek dat het app-pakket
+alles meenam, ook `private/` met de referentielijst van het huis. Er is nooit
+iets met `private/` erin geïnstalleerd: de upload van 10-03 mislukte, en de
+installatie op kantoor gebeurde eerder. Nieuwe `.homeyignore`; build en
+validate gecontroleerd. Daarmee is het open security-punt `.homeyignore` dicht.
+
 **Volgende sessie (thuis):** v0.6.2 op de Pro installeren (alleen op het LAN),
 de Anthropic-sleutel laten plakken, en FlowMind de review-vraag stellen zonder
 hint. Het antwoord scoren tegen de referentielijst en daarna FlowMind

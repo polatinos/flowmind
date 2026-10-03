@@ -1,0 +1,8 @@
+# Keep developer notes and private home data out of the app package.
+# The Homey CLI already skips dotfiles (.github, .env, ...) and .homeybuild.
+private/
+docs/
+CLAUDE.md
+AGENTS.md
+SESSIONS.md
+README.md
