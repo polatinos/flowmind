@@ -315,6 +315,53 @@ de Anthropic-sleutel laten plakken, en FlowMind de review-vraag stellen zonder
 hint. Het antwoord scoren tegen de referentielijst en daarna FlowMind
 verbeteren voor veel flows.
 
+## Sessie 10 — 2026-10-05, avond — thuis: keuken- en achtertuinflow kapot
+
+Geen FlowMind-code. Tarik meldde dat de keukenknop en de achtertuinschakelaar
+hun flows niet meer starten. Hij dacht aan Zigbee. Alles is onderzocht met de
+API-sleutel via de cloud-relay, eerst alleen lezend: Insights-tijdlijnen,
+Zigbee-`lastSeen` per node, en een live luisterscript terwijl Tarik zelf drukte.
+
+**Zigbee was het niet.** Beide schakelaars kwamen gewoon binnen. Het waren twee
+losse problemen.
+
+**Achtertuin: de Govee-app hing.** De app draaide nog en was niet gecrasht. Een
+"aan"-commando via de flowkaart liep na 10 s af en werd pas minuten later
+uitgevoerd. Om 17:49 werkte het nog wel. Na een herstart van de app reageerden
+de lampen binnen 1 s op de schakelaar. Vermoeden, niet bewezen: de app vraagt
+elke 60 s de status op van 19 lampen, en Govee staat 10.000 verzoeken per dag
+toe. Het voorstel om dat naar 5 minuten te zetten ligt nog bij Tarik. De
+auto-modus van Claude Code blokkeerde het herstarten via de API. Tarik zette de
+sessie op bypass permissions.
+
+**Keuken: de Aqara-app maakt geen triggers meer van de H1-dubbelknop.** De
+Aqara-app werd die middag om 16:36 automatisch bijgewerkt naar 1.18.0. Gisteren
+om 23:40 werkte de knop nog. De Zigbee-frames komen aan, maar een tijdelijke
+testflow met alle 8 triggervarianten (alleen tijdlijnmeldingen) vuurde geen
+enkele keer. Die testflow is daarna verwijderd. De groep en de Innr-lampen zijn
+bewezen in orde: uit en aan via de flowkaarten, en Tarik zag het gebeuren. Ook
+opnieuw koppelen hielp niet. Het nieuwe apparaat heet "Keuken lichten switch".
+De keukenflow is omgebouwd: links, rechts of beide 1x ingedrukt doet nu
+`toggle` op de groep. De oude versie had twee gelijke triggers met tegengestelde
+condities, en die raceten (aan-uit-aan staat in Insights). Back-up van de oude
+versie: `private/backups/`.
+
+**Fout van Claude:** `getAppStd` aangeroepen in de veronderstelling dat het
+logs leest. Het verstuurt een diagnoserapport naar de app-ontwikkelaar. Er gingen
+er 5 naar Govee en Aqara. Tarik is het verteld; de les staat in CLAUDE.md.
+
+**Eufy thuis** koppelt nog steeds niet. Tarik probeerde het opnieuw, zonder
+resultaat.
+
+**Voor FlowMind:** een vastgelopen app die nog "draait" is onzichtbaar voor
+`check_flows`. Een flowkaart die op een time-out loopt, verraadt het wel.
+
+**Volgende sessie (overdag, de baby sliep):** een ander Aqara-knopmodel testen
+(zolder), zodat we weten of heel 1.18.0 stuk is of alleen de H1-dubbel. Tarik
+meldt het probleem bij de Aqara-ontwikkelaar, en daarna opnieuw testen na een
+update. Besluiten over het Govee-poll-interval. Uitzoeken waar het koppelen van
+Eufy misgaat.
+
 ---
 
 ## Bijlage — testgeschiedenis en openstaande security-punten

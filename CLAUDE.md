@@ -188,6 +188,18 @@ lib/
   pagina haalt het antwoord op via `GET /chat/:jobId`. Niet terugbouwen naar
   één synchrone request.
 
+### homey-api: een methodenaam zegt niets over wat hij doet
+- `api.apps.getAppStd()` leest géén logs. Het is
+  `POST /app/:id/crashlog` en **verstuurt een diagnoserapport naar de
+  app-ontwikkelaar** (2026-10-05 per ongeluk 5× gebeurd). App-logs op afstand
+  uitlezen kan niet.
+- Zoek vóór elke nieuwe methode `method`/`path` op in
+  `node_modules/homey-api/assets/specifications/HomeyAPIV3Local.json`.
+  POST/PUT/DELETE = geen leesactie.
+- Om één flowkaart los te testen werken `api.flow.runFlowCardAction` en
+  `runFlowCardCondition`. Die geven de echte fout of time-out van de app terug.
+  Zo bleek een vastgelopen Govee-app (die nog "draaide") te herkennen.
+
 ### Modellen sturen verkeerde typen mee
 - `control_device.value` kan geen vast type hebben (boolean voor onoff, getal
   voor dim, string voor enums), dus modellen sturen `"false"` als tekst en
