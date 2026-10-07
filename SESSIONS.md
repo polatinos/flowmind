@@ -467,6 +467,28 @@ Er stond weer een ongetrackte, verouderde `AGENTS.md` (gemaakt door Codex,
 nog met Zen als default). Codex geeft die voorrang boven CLAUDE.md. Hij is
 verplaatst naar `private/backups/AGENTS.md.stale-2026-10-07` (niet in git).
 
+**Commits:** `3e6c526` (v0.7.0), gepusht naar `origin/main` met akkoord van
+Tarik voor deze sessie. Dezelfde push nam ook de lokale log-commits van 3 tot 5
+oktober mee (`07d636d`, `3b4dce3`, `5d37c47`).
+
+**Volgende sessie:**
+- **Kantoor:**
+  - Laat Tarik "Test Flow Kantoor" nalopen (de verwisselde tv-kaarten).
+  - Koppel de Tapo-camera: eerst Third-Party Compatibility, anders ONVIF.
+  - Bouw het kantooralarm als advanced-flow-test voor FlowMind, met
+    HomeBase 2 en "Arm Mode changed".
+- **Thuis**, alleen als de pc de Homey op het LAN ziet:
+  - Installeer v0.7.0 (CLI terug op "Homey Pro van Tarik").
+  - Kijk welke provider en welk model daar opgeslagen staan.
+  - Doe de review-test zonder hint tegen
+    `private/referentielijst-thuis-2026-10-01.md`.
+  - Bekijk "NestMini3262" in "Alarm activeren" en de Tuya-scènes, die niet
+    meer opgehaald kunnen worden.
+- Eufy thuis: kijk of de crashteller (49 op 2026-10-07) stilstaat nu kantoor
+  niet meer aan de HomeBase thuis hangt.
+- Nog steeds open: tests 6/7/8, de minimale scopes van de API-sleutel, en een
+  Responses-API-pad voor OpenAI (alleen als iemand OpenAI gaat gebruiken).
+
 ---
 
 ## Bijlage — testgeschiedenis en openstaande security-punten
