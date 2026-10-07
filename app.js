@@ -33,9 +33,10 @@ const UUID = '[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}';
 const HOMEY_API_KEY_RE = new RegExp(`^${UUID}:${UUID}:[0-9a-f]+$`, 'i');
 const looksLikeHomeyApiKey = (value) => HOMEY_API_KEY_RE.test(String(value || '').trim());
 
-// The free, one-key OpenCode Zen (Big Pickle) option is the default so the app
-// is usable out of the box, like the Home Assistant "opencode" add-on.
-const DEFAULT_PROVIDER = 'zen';
+// Every provider needs a key since OpenCode Zen closed its free tier to other
+// clients (2026-10), so the default is simply the provider FlowMind is tested
+// against.
+const DEFAULT_PROVIDER = 'anthropic';
 
 // Chat jobs. A settings page cannot wait for an assistant turn: Homey cancels
 // its app API requests after ~10s, while a turn with tool calls easily takes
@@ -43,6 +44,20 @@ const DEFAULT_PROVIDER = 'zen';
 // the result. Kept in memory only, and bounded like all storage on a Homey Pro.
 const CHAT_JOB_MAX = 20;
 const CHAT_JOB_TTL_MS = 10 * 60 * 1000;
+
+// Every chat turn costs the user API credits and loads the Homey, and the web
+// terminal hands this endpoint to anyone holding its link. Cap both the turns
+// running at once and the turns per window, so a script looping on the
+// endpoint cannot run up a bill.
+const CHAT_MAX_PENDING = 3;
+const CHAT_RATE_MAX = 30;
+const CHAT_RATE_WINDOW_MS = 10 * 60 * 1000;
+
+function rateLimitError(message) {
+  const err = new Error(message);
+  err.statusCode = 429;
+  return err;
+}
 
 module.exports = class FlowMindApp extends Homey.App {
   async onInit() {
@@ -53,6 +68,7 @@ module.exports = class FlowMindApp extends Homey.App {
       this.homey.settings.unset('enableCodeExecution');
     } catch (err) { /* never set on this install */ }
     this._chatJobs = new Map();
+    this._chatStarts = [];
     this.homeyContext = new HomeyContext(this.homey);
     try {
       await this.homeyContext.init();
@@ -155,7 +171,9 @@ module.exports = class FlowMindApp extends Homey.App {
       try {
         const address = await this.homey.cloud.getLocalAddress();
         const host = String(address).replace(/^https?:\/\//, '').replace(/:\d+$/, '');
-        url = `http://${host}:${WEB_TERMINAL_PORT}/?token=${this._webTerminal.ensureToken()}`;
+        // The token rides in the fragment, which the browser never sends to
+        // the server, so it stays out of request lines and logs.
+        url = `http://${host}:${WEB_TERMINAL_PORT}/#token=${this._webTerminal.ensureToken()}`;
       } catch (err) {
         this.error('Could not determine the local address for the web terminal:', err.message);
       }
@@ -186,7 +204,7 @@ module.exports = class FlowMindApp extends Homey.App {
       }
     }
 
-    if (typeof body.provider === 'string') {
+    if (typeof body.provider === 'string' && PROVIDERS[body.provider]) {
       this.homey.settings.set(SETTINGS.PROVIDER, body.provider);
     }
     if (typeof body.model === 'string') {
@@ -199,6 +217,10 @@ module.exports = class FlowMindApp extends Homey.App {
       this.homey.settings.set(SETTINGS.WEB_TERMINAL, body.webTerminalEnabled);
       if (body.webTerminalEnabled) this._webTerminal.start();
       else this._webTerminal.stop();
+    }
+    // A leaked link is full control of the house, so it must be revocable.
+    if (body.rotateWebTerminalToken === true) {
+      this._webTerminal.rotateToken();
     }
     for (const [field, key] of Object.entries(keyFields)) {
       if (typeof body[field] === 'string' && body[field].trim()) {
@@ -232,6 +254,45 @@ module.exports = class FlowMindApp extends Homey.App {
     return this.getConfig();
   }
 
+  /** Throw a 429-style error when too many turns are running or were started. */
+  _assertChatAllowed() {
+    const now = Date.now();
+    this._chatStarts = this._chatStarts.filter((t) => now - t < CHAT_RATE_WINDOW_MS);
+    const pending = [...this._chatJobs.values()].filter((j) => j.status === 'pending').length;
+    if (pending >= CHAT_MAX_PENDING) {
+      throw rateLimitError(this.homey.__('settings.chatBusy'));
+    }
+    if (this._chatStarts.length >= CHAT_RATE_MAX) {
+      throw rateLimitError(this.homey.__('settings.chatRateLimited'));
+    }
+    this._chatStarts.push(now);
+  }
+
+  /**
+   * Pick the provider and model for a turn. The chat pickers may choose a
+   * provider, but the model must be the saved one (which belongs to the saved
+   * provider only) or one from that provider's own list. Arbitrary strings
+   * from a client are ignored, and a provider switch no longer drags along a
+   * model of another provider (sending a Claude model id to Gemini).
+   */
+  _resolveProviderAndModel(body = {}) {
+    const savedProvider = this.homey.settings.get(SETTINGS.PROVIDER);
+    const saved = PROVIDERS[savedProvider] ? savedProvider : DEFAULT_PROVIDER;
+    const provider = typeof body.provider === 'string' && PROVIDERS[body.provider] ? body.provider : saved;
+    let model = provider === saved ? this.homey.settings.get(SETTINGS.MODEL) || '' : '';
+    // The settings form can still save provider B with provider A's model id
+    // (the field keeps its text when the dropdown changes). A model listed
+    // under another provider is never right for this one.
+    const ownedElsewhere = Object.entries(PROVIDERS).some(
+      ([id, p]) => id !== provider && p.models.includes(model),
+    );
+    if (ownedElsewhere) model = '';
+    if (typeof body.model === 'string' && PROVIDERS[provider].models.includes(body.model)) {
+      model = body.model;
+    }
+    return { provider, model };
+  }
+
   /** Drop expired jobs, then make room so the map never grows past the cap. */
   _pruneChatJobs() {
     const now = Date.now();
@@ -250,6 +311,7 @@ module.exports = class FlowMindApp extends Homey.App {
    */
   async startChat(body = {}) {
     this._pruneChatJobs();
+    this._assertChatAllowed();
 
     const jobId = `${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 10)}`;
     const job = {
@@ -311,8 +373,7 @@ module.exports = class FlowMindApp extends Homey.App {
     const messages = Array.isArray(body.messages) ? body.messages : [];
     if (!messages.length) throw new Error('No messages provided.');
 
-    const provider = body.provider || this.homey.settings.get(SETTINGS.PROVIDER) || DEFAULT_PROVIDER;
-    const model = body.model || this.homey.settings.get(SETTINGS.MODEL) || '';
+    const { provider, model } = this._resolveProviderAndModel(body);
     const apiKey = this._keyFor(provider);
     const baseUrl =
       provider === 'compatible' ? this.homey.settings.get(SETTINGS.COMPATIBLE_BASE_URL) || '' : undefined;
@@ -320,8 +381,7 @@ module.exports = class FlowMindApp extends Homey.App {
     if (provider === 'compatible' && !baseUrl) {
       throw new Error('Set a base URL for the OpenAI-compatible provider in the settings first.');
     }
-    const providerCfg = PROVIDERS[provider];
-    if (!apiKey && providerCfg && !providerCfg.needsBaseUrl && !providerCfg.keyOptional) {
+    if (!apiKey && !PROVIDERS[provider].needsBaseUrl) {
       throw new Error(
         `No API key set for ${provider}. Open the settings and add your ${provider} API key first.`,
       );

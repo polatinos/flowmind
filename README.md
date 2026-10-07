@@ -46,9 +46,9 @@ Homey: hij leest je systeem uit, stuurt apparaten aan en bouwt flows — inclusi
   npm install -g homey
   homey login
   ```
-- Géén API-key nodig om te starten: de standaardprovider **OpenCode Zen**
-  (gratis model Big Pickle) werkt direct. Optioneel: een key van **Anthropic**,
-  **OpenAI** of **Google Gemini** voor sterkere modellen.
+- Een API-key van een AI-provider. Aanbevolen: **Anthropic** (Claude), daar is
+  FlowMind mee getest. **OpenAI**, **Google Gemini**, **OpenCode Zen** en elke
+  OpenAI-compatibele server (Ollama, Groq) werken ook.
 
 ## Installeren & draaien
 
@@ -105,8 +105,8 @@ eigen format (Anthropic `tools`, OpenAI `tools[].function`). De uitvoering loopt
 altijd via `HomeyContext.executeTool()`, die netjes een JSON-resultaat teruggeeft
 (of `{ error }`), zodat het model fouten kan lezen en herstellen.
 
-Beschikbare tools (23): `get_system_overview`, `list_devices`, `list_zones`,
-`list_flows`, `get_flow`, `list_moods`, `control_device`, `activate_mood`,
+Beschikbare tools (24): `get_system_overview`, `list_devices`, `list_zones`,
+`list_flows`, `get_flow`, `check_flows`, `list_moods`, `control_device`, `activate_mood`,
 `start_flow`, `list_flow_cards`, `search_flow_card_autocomplete`,
 `create_standard_flow`, `create_advanced_flow`,
 `update_standard_flow`, `update_advanced_flow`, `delete_flow`, `list_backups`,
@@ -117,21 +117,16 @@ Beschikbare tools (23): `get_system_overview`, `list_devices`, `list_zones`,
 
 | Provider | Wat je invult |
 |---|---|
-| **OpenCode Zen (gratis)** ⭐ | Niets — werkt direct, zonder key. Adres + model (Big Pickle) staan al goed. Standaard geselecteerd. Eigen key (opencode.ai/auth) is optioneel. |
-| Anthropic (Claude) | Anthropic API-key |
-| OpenAI (GPT) | OpenAI API-key |
-| Google Gemini | Gemini API-key |
+| **Anthropic (Claude)** ⭐ | Anthropic API-key. Standaard geselecteerd, model `claude-opus-5-5`. |
+| OpenAI (GPT) | OpenAI API-key. Standaard `gpt-5.5`: de GPT-6-modellen doen tool calls alleen nog via de Responses API, en die spreekt FlowMind (nog) niet. |
+| Google Gemini | Gemini API-key. Standaard `gemini-3.8-flash` (Gemini 2.5 stopt in oktober 2026). |
+| OpenCode Zen | Betaalde Zen-key (opencode.ai/auth). De gratis modellen werken sinds oktober 2026 alleen nog binnen OpenCode zelf. Standaard `kimi-k3`. |
 | OpenAI-compatibel | Base URL (bijv. `https://api.groq.com/openai/v1` of `http://<homey-ip>:11434/v1` voor Ollama) + evt. API-key |
-
-**Snelste start:** gewoon typen — provider *OpenCode Zen* met het gratis
-Big Pickle-model staat standaard geselecteerd en heeft geen key nodig. Let op:
-bij gratis modellen kan OpenCode je gespreksdata gebruiken om modellen te
-verbeteren — wil je dat niet, kies dan een betaalde provider.
 
 ### Back-ups & veiligheid
 
 Elke `update_*` of `delete_flow` maakt eerst een JSON-back-up van de flow
-(bewaard in de app-instellingen, laatste 30). De AI vraagt bovendien om
+(bewaard in de app-instellingen, laatste 15 en samen max. ~300 KB). De AI vraagt bovendien om
 bevestiging vóór ingrijpende acties. Terugzetten kan met `restore_backup`.
 
 ### Geen code-uitvoering

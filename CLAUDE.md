@@ -32,7 +32,15 @@ Eerste keer: `npx homey select --name "Homey Pro van Tarik"` (de CLI vraagt
 anders interactief, wat in een agent-sessie vastloopt).
 
 Er zijn geen unit tests; verifieer met `node --check <file>`, de validate
-hierboven, en waar mogelijk een echte API-call (Zen werkt zonder key).
+hierboven, en waar mogelijk een echte API-call. Zonder key werkt geen enkele
+provider meer, dus voor een echte chat is een key nodig. Op kantoor staat
+Tariks Anthropic-key.
+
+Losse onderdelen kun je testen zonder de Homey-runtime: `HomeyContext` werkt
+met een nep-`homey` (`{ settings: { get: () => null } }`) en een `api` van
+`HomeyAPI.createLocalAPI` met de kantoor- of thuissleutel. `WebTerminal` draait
+lokaal met een nep-app. `app.js` laadt als je `require('homey')` onderschept
+via `Module._load`. Zo is v0.7.0 getest.
 
 ## Architectuur (kort)
 
@@ -45,7 +53,7 @@ locales/en.json, nl.json  Alle UI-teksten (EN = basis, NL = vertaling)
 lib/
   webTerminal.js       LAN-webserver (poort 8737): fullscreen desktop-terminal + eigen page-HTML
   HomeyContext.js      Homey Web API wrapper + ALLE tool-uitvoering + memory/backups
-  tools.js             Provider-neutrale tooldefinities (23 tools)
+  tools.js             Provider-neutrale tooldefinities (24 tools)
   flowNormalize.js     Leesbare card-keys → UUID's voor advanced flows
   http.js              Dependency-vrije http/https JSON-client
   llm/index.js         Providerkeuze + tool-use loop + memory-injectie in prompt
@@ -55,20 +63,35 @@ lib/
 
 ## Kritieke lessen (NIET opnieuw ontdekken)
 
-### OpenCode Zen (default provider)
-- Base URL `https://opencode.ai/zen/v1`, endpoint `/chat/completions`.
-- Model-ID's zijn **kaal**: `big-pickle` — het `opencode/`-prefix uit de docs
+### OpenCode Zen (sinds v0.7.0 niet meer de default)
+- Base URL `https://opencode.ai/zen/v1`. FlowMind praat alleen
+  `/chat/completions`. Zen serveert GPT, Grok en Muse via `/responses`, Claude
+  via `/messages` en Gemini via `/models`. Alleen modellen op
+  `/chat/completions` (Kimi, GLM, Qwen, DeepSeek, MiniMax, Mistral) horen dus in
+  de lijst.
+- Model-ID's zijn **kaal**: `kimi-k3`. Het `opencode/`-prefix uit de docs
   wordt door de API geweigerd ("Model not supported").
 - **Gratis zonder sleutel werkt NIET meer** (vastgesteld 2026-10-01). Elk gratis
   model geeft `403 FreeTierError: "free tier can only be used from within
   OpenCode"`. Buiten OpenCode's eigen client is alleen een betaalde Zen-sleutel
   nog mogelijk. Niet omzeilen door OpenCode na te bootsen (User-Agent e.d.):
   dat gaat tegen hun regels in.
-- **Open punt:** FlowMind heeft Zen nog als default met `keyOptional: true`,
-  en de teksten beloven "gratis, geen sleutel nodig". Default, `keyOptional`
-  en die teksten moeten nog worden aangepast; dat is een productkeuze voor
-  Tarik.
+- Daarom is de default sinds v0.7.0 **Anthropic**. Zen vraagt een sleutel, en
+  de "gratis"-teksten zijn weg. Bestaande installaties met `provider: 'zen'`
+  krijgen zonder key een duidelijke "No API key"-fout.
 - Modellenlijst live checken: `GET https://opencode.ai/zen/v1/models`.
+
+### Modellen veranderen sneller dan deze app (stand 2026-10-07)
+- **OpenAI GPT-6 doet tool calls alleen nog via de Responses API.** 6.1 Sol
+  weigert ze op Chat Completions, Sol en Luna alleen met
+  `reasoning_effort: none`. `openai.js` spreekt Chat Completions, dus de
+  default is `gpt-5.5`. Een Responses-pad bouwen is werk voor als iemand
+  OpenAI echt gebruikt (nooit getest zonder key).
+- **Gemini 2.5 stopt in oktober 2026.** De default is `gemini-3.8-flash`.
+  Gemini 3 zet een `thoughtSignature` op functionCall-parts. `gemini.js` echoot
+  de parts letterlijk terug; zonder die signature weigert de volgende request.
+- Geen van beide is live getest: er is geen OpenAI- of Gemini-key. Controleer
+  de lijsten in `lib/llm/index.js` bij elke release.
 
 ### Providers
 - **Anthropic eist strikt alternerende user/assistant-rollen.** anthropic.js
@@ -112,6 +135,14 @@ lib/
   webinterface toont alleen Status en Systeem. Mogelijk ooit bewust aangezet.
   Installeren thuis vraagt dus eerst een netwerkkabel of een tijdelijke
   uitzondering.
+- **Cloud-apps nooit met Tariks hoofdaccount op een Homey** (2026-10-07). Dat
+  account ziet thuis én kantoor. Op kantoor koppelde het daardoor de Eufy-camera
+  "Entree" van thuis (twee camera's met dezelfde naam), en via SwitchBot zou
+  het bij het voordeurslot thuis kunnen. Kantoor logt nu bij Eufy en SwitchBot
+  in als `admin@nuvrachtwagen.nl`. **SwitchBot geeft via zijn API alleen scènes
+  door die het ingelogde account zelf bezit**: wie lid is van een huis, ook als
+  Admin, ziet ze niet. Scènes die een lid maakt, komen bij de eigenaar terecht.
+  Daarom is kantoor een eigen huis van admin@ geworden.
 
 ### Homey App Store
 - **"Homey" mag niet in de appnaam** (Athom-richtlijn). Vandaar FlowMind.
@@ -168,11 +199,12 @@ lib/
 - **Oplossing (het Magnus/HA-model, live getest):** de app draait zelf een
   http-server op poort **8737** (`lib/webTerminal.js`, Node `http`, bind
   0.0.0.0 — een Homey-app MAG een LAN-poort openen, bevestigd op de Homey
-  Pro 2023). Fullscreen terminal op `http://<homey-ip>:8737/?token=…`.
+  Pro 2023). Fullscreen terminal op `http://<homey-ip>:8737/#token=…`.
 - Beveiliging: random token (crypto, in settings `webTerminalToken`),
   timingSafeEqual-check, 403 zonder token; token wordt na laden uit de URL
   gepoetst (history.replaceState) en zit daarna in localStorage. Er gaan
-  géén API-keys over deze poort — settings blijven in de Homey-modal.
+  géén API-keys over deze poort — settings blijven in de Homey-modal. De rest
+  van de beveiliging staat onder "Webterminal: het token is de huissleutel".
 - Live stappen gaan hier via **polling**: `getChatJob` geeft bij `pending`
   ook `steps` terug (gebufferd op de job, cap 100). De settings-pagina
   gebruikt realtime `chatStep`-events; de webpagina kan dat niet.
@@ -252,8 +284,9 @@ die daaruit volgden:
 
 **Openstaande tests:** 6 (`ai_do`/`ai_ask` flow-kaarten, risico: flow-timeout
 bij `maxSteps: 6`), 7 (Insights), 8 (Moods — `moods.setMood` nooit live
-getest), `check_flows` op een echt probleem (draaide op kantoor zonder fouten,
-maar daar was niets kapot; de Dyson-kaart thuis is de echte test), de
+getest), `check_flows` via de chat thuis (de logica van v0.7.0 is wel tegen de
+echte thuisdata gedraaid en vond verdwenen en onbereikbare apparaten; thuis
+draait nog v0.5.4), de
 flow-review thuis tegen `private/referentielijst-thuis-2026-10-01.md`, en de
 minimale API-sleutel-scopes met een smallere sleutel. De chronologie van wat wél
 getest is staat in `SESSIONS.md`.
@@ -276,19 +309,43 @@ getest is staat in `SESSIONS.md`.
 - De use-case die er écht was (vertraagde acties) is sinds v0.5.3 opgelost
   met een tijdelijke flow.
 
-### Webterminal: de comment liegt
+### Webterminal: het token is de huissleutel
 
-`lib/webTerminal.js` zegt "chat only, no secrets over this port". In
-werkelijkheid krijgt een token-houder op het LAN volledige huisbediening, álle
-memories en flow-beheer — over plain HTTP, met het token in de URL-query. Ga
-daar bij elke wijziging aan die server van uit.
+Een token-houder op het LAN krijgt volledige huisbediening, álle memories en
+flow-beheer, over plain HTTP. Ga daar bij elke wijziging aan die server van
+uit. Sinds v0.7.0 (de vier punten uit de security-review zijn dicht):
+- Het token gaat alleen in de header `X-FlowMind-Token`. De server weigert
+  `?token=`. De link zet het token in de **#fragment**, en die stuurt een
+  browser nooit mee. De pagina zelf bevat geen geheimen en komt zonder token.
+- De `Host`-header moet een LAN-vorm hebben: een IP, een kale naam, of
+  `.local`/`.lan`/`.home`/`.home.arpa`/`.internal`/`.ts.net`. Dat houdt DNS
+  rebinding tegen. Komt er een nieuwe manier van openen bij, bijvoorbeeld een
+  eigen domein, dan moet die in `LAN_HOST_SUFFIXES`.
+- "Nieuwe link" in de instellingen roteert het token. Open terminals krijgen
+  dan 403 en wissen hun oude token.
+- `startChat` begrenst: maximaal 3 lopende beurten en 30 per 10 minuten
+  (429). Flow-kaarten gaan via `chat()` en vallen daar buiten.
+- `provider` van de client mag alleen een bekende provider zijn, en `model`
+  alleen uit de lijst van die provider. Anders geldt het opgeslagen model,
+  maar alleen bij de opgeslagen provider. Vroeger ging bij wisselen het model
+  van de andere provider mee.
 
 **Kwaliteitslat:** het niveau van Magnus' Home Assistant-werk, vóór er over de
 App Store wordt nagedacht.
 
-De openstaande security-punten (Host-header-validatie, token uit de query,
-rate limiting op `/api/chat`, client-gekozen `provider`/`model` uit
-`startChat`) staan met toelichting in `SESSIONS.md`.
+### `check_flows` vraagt apps naar hun eigen lijsten (v0.7.0)
+- Naast verdwenen apparaten en apps meldt hij `device_unavailable` (bij een
+  gecrashte app noemt hij de app) en `stale_argument`. Dat laatste gaat over
+  een gekozen scène, gebruiker, variabele, speaker of flow die de app niet meer
+  aanbiedt. Hij controleert dat met `getFlowCardAutocomplete`: eerst met een
+  lege query, daarna met de naam.
+- Begrensd: maximaal 40 lookups, 6 tegelijk, 5 s per stuk. Thuis (45 flows,
+  36 kaart/argument-paren) duurde de hele check ~4-5 s via de cloud-relay.
+- Lijsten die op ontdekking draaien (Cast-speakers) kunnen een apparaat missen
+  dat even offline is. Daarom zegt de melding "offline" er eerlijk bij.
+- Gevonden bij de eerste run thuis: "NestMini3262" in "Alarm activeren" wordt
+  niet meer aangeboden, en de Tuya-app thuis kan zijn scènes niet ophalen
+  ("Could not retrieve Tuya scenes").
 
 ### `.homeyignore` houdt notities en privédata uit het app-pakket
 - Sinds 2026-10-03 houdt `.homeyignore` `private/`, `docs/`, `CLAUDE.md`,

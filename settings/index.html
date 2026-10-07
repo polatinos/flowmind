@@ -150,27 +150,27 @@
         </div>
       </div>
       <div style="margin-top: 12px; padding: 12px; border: 1px solid var(--brand); background: var(--brand-soft); border-radius: 10px;">
-        <div style="font-weight: 700; font-size: 13px; color: var(--brand); margin-bottom: 2px;" data-i18n="settings.zenTitle">⭐ Easiest option: OpenCode Zen (free)</div>
-        <div class="hint" style="margin: 0 0 8px;" data-i18n="settings.zenHint">Works out of the box, no key needed: the provider OpenCode Zen is selected by default and uses the free Big Pickle model. Optionally set your own key (opencode.ai/auth), e.g. for higher limits.</div>
-        <div class="field">
-          <label for="zenApiKey" data-i18n="settings.zenKeyLabel">OpenCode Zen API key (optional)</label>
-          <input id="zenApiKey" type="password" autocomplete="off" />
-        </div>
-      </div>
-      <div class="row" style="margin-top: 10px;">
+        <div style="font-weight: 700; font-size: 13px; color: var(--brand); margin-bottom: 2px;" data-i18n="settings.recommendedTitle">⭐ Recommended: Anthropic (Claude)</div>
+        <div class="hint" style="margin: 0 0 8px;" data-i18n="settings.recommendedHint">FlowMind is tested with Claude and it is selected by default. Create a key at console.anthropic.com and paste it here. Every provider needs its own key; you pay that provider per use.</div>
         <div class="field">
           <label for="anthropicApiKey" data-i18n="settings.anthropicKeyLabel">Anthropic API key</label>
           <input id="anthropicApiKey" type="password" placeholder="sk-ant-…" autocomplete="off" />
         </div>
+      </div>
+      <div class="row" style="margin-top: 10px;">
         <div class="field">
           <label for="openaiApiKey" data-i18n="settings.openaiKeyLabel">OpenAI API key</label>
           <input id="openaiApiKey" type="password" placeholder="sk-…" autocomplete="off" />
         </div>
-      </div>
-      <div class="row" style="margin-top: 10px;">
         <div class="field">
           <label for="geminiApiKey" data-i18n="settings.geminiKeyLabel">Google Gemini API key</label>
           <input id="geminiApiKey" type="password" placeholder="AIza…" autocomplete="off" />
+        </div>
+      </div>
+      <div class="row" style="margin-top: 10px;">
+        <div class="field">
+          <label for="zenApiKey" data-i18n="settings.zenKeyLabel">OpenCode Zen API key</label>
+          <input id="zenApiKey" type="password" autocomplete="off" />
         </div>
         <div class="field">
           <label for="compatibleApiKey" data-i18n="settings.compatibleKeyLabel">OpenAI-compatible API key (Ollama: leave empty)</label>
@@ -198,13 +198,14 @@
       </div>
       <div style="margin-top: 12px; padding: 12px; border: 1px solid var(--border); border-radius: 10px;">
         <div style="font-weight: 700; font-size: 13px; margin-bottom: 2px;" data-i18n="settings.webTermTitle">🖥 Web terminal (desktop)</div>
-        <div class="hint" style="margin: 0 0 8px;" data-i18n="settings.webTermHint">Full-screen terminal for desktop browsers, served by the app on your own network. Only reachable at home (LAN) and protected with an access token; API keys are never exposed on it.</div>
+        <div class="hint" style="margin: 0 0 8px;" data-i18n="settings.webTermHint">Full-screen terminal for desktop browsers, served by the app on your own network (LAN only). API keys never appear on it, but anyone with the link can control your home through the AI, so do not share it. Leaked? Make a new link: the old one stops working at once.</div>
         <label style="display:flex; align-items:center; gap:8px; font-size:13px; color:var(--text); font-weight:600; cursor:pointer;">
           <input id="webTerminalEnabled" type="checkbox" style="width:auto;" />
           <span data-i18n="settings.webTermToggle">Enable web terminal</span>
         </label>
         <div class="row" style="margin-top: 10px;">
           <button id="webTermOpenBtn" type="button" style="display:none;" data-i18n="settings.webTermOpenBtn">Open web terminal</button>
+          <button id="webTermRotateBtn" class="secondary" type="button" style="display:none;" data-i18n="settings.webTermRotate">New link</button>
         </div>
         <div id="webTermLink" class="hint" style="margin-top: 8px;"></div>
       </div>
@@ -255,7 +256,6 @@
     }
     let sending = false;
     let currentCfg = null;
-    const FREE_PROVIDERS = new Set(['zen']);
     // Providers with a key field "<id>ApiKey"; each gets its own remove button.
     const PROVIDER_KEY_IDS = ['zen', 'anthropic', 'openai', 'gemini', 'compatible'];
     // Same check as app.js: a Homey API key must not land in an AI-provider field.
@@ -412,7 +412,7 @@
             opt.textContent = p.label + (cfg.keysSet && cfg.keysSet[p.id] ? ' ✓' : '');
             providerSel.appendChild(opt);
           });
-          providerSel.value = cfg.provider || 'zen';
+          providerSel.value = cfg.provider || 'anthropic';
           modelInput.value = cfg.model || '';
           $('compatibleBaseUrl').value = cfg.compatibleBaseUrl || '';
           updateHomeyKeyStatus(cfg.homeyApi || {});
@@ -420,7 +420,16 @@
           updateConnStatus(cfg.homeyApi || {});
           updateWebTerminal(cfg.webTerminal || {});
           updateModelPlaceholder(cfg);
-          providerSel.onchange = () => updateModelPlaceholder(cfg);
+          providerSel.onchange = () => {
+            // A model of the previous provider makes no sense for the new
+            // one; free text that no provider lists stays (custom models).
+            const model = modelInput.value.trim();
+            const ownedElsewhere = (cfg.providers || []).some(
+              (p) => p.id !== providerSel.value && (p.models || []).includes(model),
+            );
+            if (ownedElsewhere) modelInput.value = '';
+            updateModelPlaceholder(cfg);
+          };
           currentCfg = cfg;
           populateChatProvider(cfg);
         } catch (e) {
@@ -435,20 +444,35 @@
         $('webTerminalEnabled').checked = Boolean(wt.enabled);
         const box = $('webTermLink');
         const btn = $('webTermOpenBtn');
+        const rotate = $('webTermRotateBtn');
         box.textContent = '';
         if (wt.error) {
           btn.style.display = 'none';
+          rotate.style.display = 'none';
           box.textContent = t('webTermError') + wt.error;
           return;
         }
         if (wt.enabled && wt.url) {
           btn.style.display = '';
+          rotate.style.display = '';
           btn.onclick = () => Homey.openURL(wt.url);
-          box.textContent = t('webTermAfterHint') + wt.url.replace(/\?token=.*$/, '');
+          box.textContent = t('webTermAfterHint') + wt.url.replace(/[?#]token=.*$/, '');
         } else {
           btn.style.display = 'none';
+          rotate.style.display = 'none';
         }
       }
+
+      $('webTermRotateBtn').onclick = async () => {
+        setStatus($('settingsStatus'), t('saving'));
+        try {
+          await api('PUT', '/config', { rotateWebTerminalToken: true });
+          setStatus($('settingsStatus'), t('webTermRotated'), 'ok');
+          await loadConfig();
+        } catch (e) {
+          setStatus($('settingsStatus'), t('saveFailed') + (e.message || e), 'err');
+        }
+      };
 
       // Header + status line: show at a glance whether flows are unlocked.
       function updateConnStatus(ha) {
@@ -536,14 +560,13 @@
       }
 
       // A provider is usable if its key (or, for the compatible one, base URL)
-      // is set. Providers with an optional key (OpenCode Zen) always work.
+      // is set.
       function isReady(cfg, p) {
-        if (p.keyOptional) return true;
         if (p.needsBaseUrl) return Boolean(cfg.compatibleBaseUrl);
         return Boolean(cfg.keysSet && cfg.keysSet[p.id]);
       }
 
-      // Fill the in-chat AI switcher so you can flip between free and paid per message.
+      // Fill the in-chat AI switcher so you can flip between providers per message.
       function populateChatProvider(cfg) {
         const sel = $('chatProvider');
         sel.innerHTML = '';
@@ -553,8 +576,7 @@
         list.forEach((p) => {
           const opt = document.createElement('option');
           opt.value = p.id;
-          const tag = FREE_PROVIDERS.has(p.id) ? ' · ' + t('free') : '';
-          opt.textContent = p.label + tag + (isReady(cfg, p) ? '' : ' ' + t('noKeySuffix').trim());
+          opt.textContent = p.label + (isReady(cfg, p) ? '' : ' ' + t('noKeySuffix').trim());
           sel.appendChild(opt);
         });
         const preferred = list.find((p) => p.id === cfg.provider) ? cfg.provider : (list[0] && list[0].id);
@@ -569,9 +591,8 @@
         const p = (currentCfg.providers || []).find((x) => x.id === sel.value);
         if (!p) { $('chatProviderHint').textContent = ''; return; }
         const model = sel.value === currentCfg.provider && currentCfg.model ? currentCfg.model : p.defaultModel;
-        const price = FREE_PROVIDERS.has(p.id) ? t('free') : t('paid');
         const ready = isReady(currentCfg, p) ? '' : t('noKeySet');
-        $('chatProviderHint').textContent = price + ' · ' + (model || t('modelUnknown')) + ready;
+        $('chatProviderHint').textContent = (model || t('modelUnknown')) + ready;
         updateTermStatus();
       }
 

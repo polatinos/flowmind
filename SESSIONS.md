@@ -364,6 +364,111 @@ Eufy misgaat.
 
 ---
 
+## Sessie 11 — 2026-10-07 — kantoor: accounts op orde, daarna v0.7.0
+
+**Keukenknop thuis werkt weer vanzelf.** De Aqara-app staat inmiddels op
+**1.18.1**, en de Homey is niet herstart (uptime ~8 dagen). De
+auto-update repareerde dus wat 1.18.0 brak. De zoldertest is niet meer nodig.
+
+**Eufy: het was geen gedeeld account.** Tarik dacht dat beide Homeys
+hetzelfde account gebruikten. De app-instellingen lieten iets anders zien:
+thuis logt in als `tarik.polat.2576@gmail.com`, kantoor als
+`tarik-polat@live.nl` (het hoofdaccount, dat beide huizen ziet). Daardoor stond
+op de kantoor-Homey de camera **"Entree" van thuis** (zelfde serienummer, aan de
+HomeBase thuis). Tarik had op kantoor een nieuwe camera "Entree" opgehangen, en
+bij het koppelen is de verkeerde gekozen. Beide Eufy-apps crashten die dag om
+beurten ("Memory Warning Limit Reached" op kantoor, 47→49 crashes thuis).
+- Kantoor logt nu in als `admin@nuvrachtwagen.nl`, dat alleen lid is van huis
+  NUvrachtwagen.
+- De verkeerde Entree is met Tariks akkoord van de kantoor-Homey verwijderd.
+  Geen flow gebruikte hem.
+- De nieuwe camera heet "Gang1" en hangt aan zijn eigen station.
+- Bjorns NAS gebruikt `nusoftapp070`, volgens Bjorn. Dat staat los van de
+  Homeys.
+- Of het crashen thuis stopt, moet de komende dagen blijken. De teller stond
+  op 49.
+
+**SwitchBot op kantoor.** De app was nooit ingelogd, wat "Invalid Token" gaf
+bij de scènelijst. Na inloggen als admin@ (Admin-lid van huis Kantoor) zag
+Homey **0 scènes**. De SwitchBot-API geeft alleen scènes van het account zelf.
+Scènes die admin@ als lid maakte, kwamen zelfs bij de eigenaar terecht: ze
+verschenen op de Homey thuis. Een huis overdragen kan in SwitchBot niet.
+Opgelost doordat admin@ een eigen huis kreeg met de kantoorapparaten erin. Nu
+ziet de kantoor-Homey alle 4 tv-scènes. Tarik heeft "Test Flow Kantoor"
+daarna zelf omgezet naar de nieuwe scènes.
+
+**Tapo-camera op kantoor** (192.168.68.117, TP-Link) wordt niet gevonden door
+de officiële Tapo-app. Die ondersteunt niet elke camera. Advies: Third-Party
+Compatibility aanzetten, anders de ONVIF-app met een cameraccount. Nog niet
+afgerond.
+
+**Eufy-alarm kantoor:** de HomeBase 2 is via Homey al te bedienen
+(beveiligingsmodus, sirene, volume, trigger "Arm Mode changed"). Een keypad is
+alleen nodig voor bediening met pincode zonder app. De buitensirene hangt aan
+de HomeBase 2 en is niet als los Homey-apparaat te koppelen. Een test om te
+horen of hij meegaat met het HomeBase-alarm wilde Tarik niet.
+
+**v0.7.0.** Tarik gaf de opdracht om FlowMind zelf verder te verbeteren en te
+pushen zonder tussendoor toestemming te vragen.
+- **Webterminal:** de vier open security-punten zijn dicht. Het token gaat
+  alleen nog in de header, de link zet het in de #fragment, er is een
+  `Host`-allowlist tegen DNS rebinding, security-headers, en een knop "Nieuwe
+  link" die het token roteert. De `/api/chat` is begrensd: 3 tegelijk, 30 per
+  10 min. Provider en model van de client gaan door een allowlist. Daarbij
+  bleek een echte bug: koos je in de chat een andere provider, dan ging het
+  opgeslagen model van de vorige provider mee (een Claude-id naar Gemini). Ook
+  de comment in `webTerminal.js` vertelt nu eerlijk wat de poort geeft.
+- **Providers:** de default is Anthropic. Zen vraagt een sleutel en de
+  "gratis"-belofte is weg uit de UI, de README en de welkomsttekst. De
+  modellenlijsten zijn bijgewerkt (zie CLAUDE.md voor het waarom): OpenAI
+  `gpt-5.5`, Gemini `gemini-3.8-flash` (2.5 stopt deze maand), Zen `kimi-k3`.
+  De Gemini-key gaat nu in een header in plaats van de URL.
+- **`check_flows`:** nieuwe meldingen `device_unavailable` (noemt de app als
+  die gecrasht is) en `stale_argument` (scène, gebruiker, variabele of speaker
+  bestaat niet meer volgens de app zelf), plus `autocompleteErrors`. Precies het
+  SwitchBot-geval van vandaag, dat Homey zelf "gezond" noemt.
+
+**Getest:**
+- Alle bestanden met `node --check`, validate `publish` geslaagd.
+- De webterminal lokaal met een nep-app: Host-check, header versus query,
+  verkeerd token, 429 en token-rotatie gaven allemaal de verwachte status.
+- `_resolveProviderAndModel` en de limieten los getest.
+- `check_flows` draaide tegen de echte data. Kantoor: 2 flows, niets mis
+  (klopt). Thuis: 45 flows in ~5 s, met verdwenen apparaten, "Google Tv
+  Woonkamer" onbereikbaar, "NestMini3262" niet meer aangeboden in "Alarm
+  activeren", en de Tuya-app die zijn scènes niet kan ophalen.
+- v0.7.0 geïnstalleerd op kantoor. De link heeft nu de vorm `/#token=…`. Live
+  gaf `?token=` 403, de header 200 en een vreemde host 403. Eén echte chat ("Werken
+  al mijn flows nog?") gaf in 10 s het juiste antwoord via `check_flows`.
+- Niet getest: OpenAI en Gemini (geen key).
+
+**Gezien, niet aangepast:** in "Test Flow Kantoor" lijken twee kaarten
+verwisseld. 1x drukken zet na 1 minuut nog eens "TV entree Aan" aan, en 2x
+drukken (uit) zet "TV wachtkamer **aan**". Vermoedelijk hoort 1x "TV wachtkamer
+aan" te geven en 2x "Tv wachtkamer Uit". Voorgelegd aan Tarik.
+
+**Review door Fable.** Geen ernstige fouten. Vijf kleine punten waren raak en
+zijn verwerkt:
+- de terminal liet de providerkeuze leeg als de opgeslagen provider geen key
+  had;
+- een nieuwe `#token=`-link in hetzelfde tabblad laadde de pagina niet
+  opnieuw;
+- de naamzoekopdrachten van `check_flows` hebben nu een eigen budget, en de
+  hele lookup-ronde maximaal 15 s;
+- een app die de zoekterm negeert geeft "niet gecontroleerd" in plaats van een
+  mogelijk vals `stale_argument`;
+- een opgeslagen model van een andere provider wordt nooit meer meegestuurd.
+
+Voor punt 4 is nagemeten dat alle 7 soorten lijsten thuis wél op de zoekterm
+filteren, dus het vangnet gaat daar niet af. Opnieuw geïnstalleerd op kantoor
+en nagetest.
+
+Er stond weer een ongetrackte, verouderde `AGENTS.md` (gemaakt door Codex,
+nog met Zen als default). Codex geeft die voorrang boven CLAUDE.md. Hij is
+verplaatst naar `private/backups/AGENTS.md.stale-2026-10-07` (niet in git).
+
+---
+
 ## Bijlage — testgeschiedenis en openstaande security-punten
 
 Verplaatst uit `CLAUDE.md` op 2026-08-08. CLAUDE.md houdt de blijvende lessen,
@@ -420,6 +525,9 @@ fysieke Govee-lamp deed niets; Tarik zat ernaast. v0.5.3 bracht vertraagde
 acties via een tijdelijke flow met delay en opruimen na afloop.
 
 ### Security-review 2026-07-22 — openstaande punten
+
+**Stand 2026-10-07:** alle punten hieronder zijn dicht, `.homeyignore` sinds
+2026-10-03 en de rest in v0.7.0 (zie sessie 11 en CLAUDE.md).
 
 Uitgevoerd terwijl de Homey offline was; bevindingen met "bewezen" zijn lokaal
 nagespeeld met Node, niet beredeneerd. De `run_script`-conclusie staat in
