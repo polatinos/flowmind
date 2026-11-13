@@ -143,6 +143,18 @@ lib/
   door die het ingelogde account zelf bezit**: wie lid is van een huis, ook als
   Admin, ziet ze niet. Scènes die een lid maakt, komen bij de eigenaar terecht.
   Daarom is kantoor een eigen huis van admin@ geworden.
+- **Geheugen van een Homey diagnosticeren:** Insights heeft per app
+  `homey:manager:apps:<appId>-mem` en voor de kern `homey:manager:system:memory`
+  (7 dagen, per uur). `system.getMemoryInfo().types` geeft per proces het
+  eigen geheugen. `app.usage.mem` is RSS en telt gedeeld geheugen dubbel. De
+  Pro thuis (2 GB) loopt vol door het aantal apps, niet door één app.
+- **Zigbee op kantoor loopt via een Homey Bridge.** Doen Zigbee-apparaten
+  niets, kijk dan eerst naar `zigbee.getState().zigbee_ready`. De apparaten
+  blijven ook bij een platte Zigbee "beschikbaar" heten. Na een herstart kan hij
+  lang op `FLASH_FIRMWARE` blijven staan (2026-10-20: ±35 min): wacht dat af,
+  en haal de Bridge niet nogmaals van de stroom. Nooit Zigbee resetten (dan
+  moet alles opnieuw gekoppeld worden). `system.getInfo().uptime` is op SHS de
+  uptime van de host, niet die van Homey.
 
 ### Homey App Store
 - **"Homey" mag niet in de appnaam** (Athom-richtlijn). Vandaar FlowMind.

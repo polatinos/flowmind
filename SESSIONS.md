@@ -491,6 +491,81 @@ oktober mee (`07d636d`, `3b4dce3`, `5d37c47`).
 
 ---
 
+## Sessie 12 — 2026-10-10 t/m 2026-11-13 — beheer van beide Homeys
+
+Geen FlowMind-code. Drie losse klussen.
+
+### 2026-10-10, thuis: Homey Pro offline door geheugen
+
+De Homey Pro was offline (cloud: `homey_offline`). Tarik haalde de stekker
+eruit; om 19:08 was hij terug. Daarna is alles alleen lezend uitgezocht.
+
+- **Homey houdt zelf per app het geheugen bij.** Insights-logs
+  `homey:manager:apps:<appId>-mem` (7 dagen, per uur) en
+  `homey:manager:system:memory` (de Homey-kern). Daarmee was de oorzaak
+  zichtbaar zonder raden.
+- Om ~16:30 stopten de logs: daar bevroor hij.
+- 4 minuten na het opstarten was er nog maar 450 van 1896 MB vrij. De kern
+  gebruikte 427 MB, "other" 143 MB en 28 apps samen ~855 MB.
+  `system.getMemoryInfo().types` geeft per proces het eigen geheugen.
+  `app.usage.mem` is RSS en telt gedeeld geheugen dubbel.
+- Er was geen app die op hol sloeg. Het ging om het aantal apps plus een paar
+  die langzaam groeiden: Device Groups +30 MB per week, Tuya +19, Govee +11,
+  de kern 360→460 MB. CPU en temperatuur waren normaal.
+- **Met Tariks akkoord:**
+  - Zes apps verwijderd: IcalCalendar, 3 widget-apps (enhanced_device_widget,
+    widgey, widgetboard), Flow Checker en VeSync. Er blijven 22 apps over.
+  - Vrij geheugen kort na het opstarten: 450 → 703 MB.
+  - "Systeem Herstel" draait nu **elke nacht om 05:10**. De voorwaarde "dag
+    1" en de dode Dyson-kaart zijn eruit. Hij herstart Device Groups → Tuya
+    → Govee en stuurt daarna een push. Back-up:
+    `private/backups/systeem-herstel-2026-10-10.json`.
+- Op verzoek blijven beide Roborock-apps staan. "Roborock" (Justin Harings)
+  heeft 0 apparaten; de stofzuigers zitten in "Roborock Cloud".
+- Nog kandidaat, niet goedgekeurd: Meross en CallMeBot (0 apparaten en 0
+  flows; SOS belt via een webhook), Eufy, Tuya en Tapo (één P300-stekkerdoos,
+  in geen enkele flow).
+
+### 2026-10-20, kantoor: knopflow werkte niet, Zigbee lag eruit
+
+- **SwitchBot was het niet.** De app is ingelogd als admin@ en ziet alle 4
+  tv-scènes. Dat Tariks iPhone ze niet ziet, komt doordat het kantoorhuis van
+  admin@ is. Tarik moet het vanaf de Android met tarik-polat delen.
+- **De knop (Aqara Mini Switch T1) kwam niet binnen, omdat Zigbee lag.**
+  `zigbee.getState()` gaf `zigbee_ready: false` met "HomeyBridgeTimeout
+  After:15000ms" en 0 nodes. Alle 5 Zigbee-apparaten stonden nog wel op
+  "beschikbaar". Zigbee loopt op kantoor via een Homey Bridge.
+- Eerst de Bridge van de stroom gehaald. Daarna de server herstart met
+  `system.reboot()`, met Tariks akkoord. Na beide bleef Zigbee hangen op
+  `FLASH_FIRMWARE`. Om **09:30** was hij vanzelf terug, ±35 min na de herstart,
+  met alle 6 nodes. Om 11:33 kwam een druk op de knop binnen, en de tv's
+  reageerden.
+- De Bridge wisselde van IP (.120 → .108) en zit op de Deco-mesh met 3
+  punten. Advies aan Tarik: vaste IP's voor Bridge en server, en
+  "Mesh-technologie" uit voor de Bridge. Niet updaten naar 13.5.x zolang dit
+  niet stabiel is.
+- **"Test Flow Kantoor" rechtgezet** (met akkoord, zonder te schakelen):
+  - 1x → TV entree aan → 1 min → TV wachtkamer aan + beamer aan.
+  - 2x → TV entree uit + TV wachtkamer uit + beamer uit.
+  - Back-up: `private/backups/test-flow-kantoor-2026-10-20.json`.
+  - `check_flows` daarna: niets mis.
+
+### 2026-11-13: schijfruimte
+
+De projectmap is 14 MB. Alleen `.homeybuild/` (5,7 MB) en `node_modules/`
+(5,5 MB) konden weg. Tarik wilde dat niet. Er is niets verwijderd.
+`AGENTS.md` (ongetrackt, door Codex aangemaakt) staat er weer en is
+blijven staan.
+
+**Voor FlowMind:** `check_flows` ziet niet dat Zigbee of een Bridge plat ligt,
+omdat de apparaten dan nog "beschikbaar" heten. Een check op
+`zigbee.getState().zigbee_ready` hoort erbij. Dat is de volgende verbetering.
+
+**Volgende sessie:** zie sessie 11, plus het vrije geheugen thuis een paar dagen
+volgen (blijft het rond de 650-700 MB?) en de Zigbee-check in `check_flows`.
+
+---
+
 ## Bijlage — testgeschiedenis en openstaande security-punten
 
 Verplaatst uit `CLAUDE.md` op 2026-08-08. CLAUDE.md houdt de blijvende lessen,
